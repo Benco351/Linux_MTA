@@ -30,10 +30,11 @@ handleTerminal()
 }     
 handleArrivalApi()
 {
-     response=$(curl -s -w "%{http_code}" "https://opensky-network.org/api/flights/arrival?airport=$1&begin=$2&end=$3")
-    status_code=$(echo "$response" | tail -n1)
-    if [ "$status_code" -eq 200 ]; then
-        response=$(echo "$response" | head -n-1)
+response=$(curl -s -w "%{http_code}" "https://opensky-network.org/api/flights/arrival?airport=$1&begin=$2&end=$3")
+http_code=$(echo "$response" | tail -c 4)
+response=$(echo "$response" | head -c -4)
+    if [ "$http_code" -eq 200 ]; then
+       
         echo "$response" >"$1.arvjson"
         OrderJson "$1" "arv"
         rm "$1.arvjson"
@@ -43,10 +44,11 @@ handleArrivalApi()
 }
 handleDepartureApi()
 {
-   response=$(curl -s -w "%{http_code}" "https://opensky-network.org/api/flights/departure?airport=$1&begin=$2&end=$3")
-    status_code=$(echo "$response" | tail -n1)
-    if [ "$status_code" -eq 200 ]; then
-        response=$(echo "$response" | head -n-1)
+response=$(curl -s -w "%{http_code}" "https://opensky-network.org/api/flights/departure?airport=$1&begin=$2&end=$3")
+http_code=$(echo "$response" | tail -c 4)
+response=$(echo "$response" | head -c -4)
+ 
+    if [ "$http_code" -eq 200 ]; then
         echo "$response" >"$1.dptjson"
         OrderJson "$1" "dpt"
         rm "$1.dptjson"
