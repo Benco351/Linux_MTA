@@ -30,25 +30,26 @@ handleTerminal()
 }     
 handleArrivalApi()
 {
-   response="$(curl -s "https://opensky-network.org/api/flights/arrival?airport=$1&begin=$2&end=$3")";  
-   if [ $? -eq 0 ]; then # Check if the curl command exited successfully
-      echo $response > $1.arvjson;
-      OrderJson $1 "arv"
-      rm $1.arvjson;
+    response_headers=$(curl -s -I "https://opensky-network.org/api/flights/arrival?airport=$1&begin=$2&end=$3")
+    if echo "$response_headers" | grep -q "HTTP/1.1 200 OK"; then
+       response=$(curl -s "https://opensky-network.org/api/flights/arrival?airport=$1&begin=$2&end=$3")  
+       echo $response > $1.arvjson;
+       OrderJson $1 "arv"
+       rm $1.arvjson;
    else
-       echo "Error retrieving arrival flights information for airport $1"
-    fi
- 
+       echo "Error: API responded with an HTTP status code other than 200 OK"
+   fi
 }
 handleDepartureApi()
 {
-   response="$(curl -s "https://opensky-network.org/api/flights/departure?airport=$1&begin=$2&end=$3")";
-   if [ $? -eq 0 ]; then # Check if the curl command exited successfully
-        echo $response > $1.dptjson;
-        OrderJson $1 "dpt";
-        rm $1.dptjson;
+   response_headers=$(curl -s -I "https://opensky-network.org/api/flights/departure?airport=$1&begin=$2&end=$3")
+   if echo "$response_headers" | grep -q "HTTP/1.1 200 OK"; then
+       response=$(curl -s "https://opensky-network.org/api/flights/departure?airport=$1&begin=$2&end=$3")
+       echo $response > $1.dptjson;
+       OrderJson $1 "dpt"
+       rm $1.dptjson;
    else
-       echo "Error retrieving departure flights information for airport $1";
+       echo "Error: API responded with an HTTP status code other than 200 OK"
    fi
 }
 OrderJson()
