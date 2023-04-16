@@ -1,6 +1,6 @@
 #!/bin/bash
+set -e
 Location=$(pwd);
-# Location="/home/bens/Desktop/MTA-Assignments/Assignment_Elior_Smadar_ben/flightDB";
 
 handleTerminal()
 {
@@ -31,21 +31,38 @@ handleTerminal()
 handleArrivalApi()
 {
    response="$(curl -s "https://opensky-network.org/api/flights/arrival?airport=$1&begin=$2&end=$3")";  
-   echo $response > $1.arvjson;
-   OrderJson $1 "arv"
-   rm $1.arvjson;
+   if [ $? -eq 0 ]; then # Check if the curl command exited successfully
+      echo $response > $1.arvjson;
+      OrderJson $1 "arv"
+      rm $1.arvjson;
+   else
+       echo "Error retrieving arrival flights information for airport $1"
+    fi
+ 
 }
 handleDepartureApi()
 {
    response="$(curl -s "https://opensky-network.org/api/flights/departure?airport=$1&begin=$2&end=$3")";
-   echo $response > $1.dptjson;
-   OrderJson $1 "dpt"
-   rm $1.dptjson;
+   if [ $? -eq 0 ]; then # Check if the curl command exited successfully
+        echo $response > $1.dptjson;
+        OrderJson $1 "dpt";
+        rm $1.dptjson;
+   else
+       echo "Error retrieving departure flights information for airport $1";
+   fi
 }
 OrderJson()
 {
- cat $1.$2'json' | sed 's/,/\n/g' | sed 's/{/{\n/g' | sed 's/]//g' | sed 's/"//g'| sed 's/,/\n/g' | sed 's/{/{\n/g' | sed 's/]//g' | sed 's/"//g' | sed 's/}//' | tail -n 13 | awk -F: '{print $1}' | sed -z 's/\n/,/g;s/,$/\n/' | awk -F',' '{print $2,$3,$4,$5,$6,$7}' | sed 's/ /,/g' > $1.$2;
-  cat $1.$2'json' | sed 's/,/\n/g' | sed 's/{/{\n/g' | sed 's/]//g' | sed 's/"//g'| awk -F: '{print $2}' | sed -z 's/\n/,/g;s/,$/\n/' | sed 's/},/\n/g'| sed  's/ //g' | sed 's/}$//' |sed 's/^,//g'  |awk -F',' '{print $1,$2,$3,$4,$5}'| sed 's/ /,/g' >> $1.$2;
+    if [ ! -f "$1.$2json" ]; then
+        echo "Error: File $1.$2json not found";
+        return 1;
+    fi
+    cat $1.$2'json' | sed 's/,/\n/g' | sed 's/{/{\n/g' | sed 's/]//g' | sed 's/"//g'| sed 's/,/\n/g' | sed 's/{/{\n/g' | sed 's/]//g' | sed 's/"//g' | sed 's/}//' | tail -n 13 | awk -F: '{print $1}' | sed -z 's/\n/,/g;s/,$/\n/' | awk -F',' '{print $2,$3,$4,$5,$6,$7}' | sed 's/ /,/g' > $1.$2;
+    if [ ! -s "$1.$2" ]; then
+        echo "Error: Output file $1.$2 is empty"
+        return 1
+    fi
+    cat $1.$2'json' | sed 's/,/\n/g' | sed 's/{/{\n/g' | sed 's/]//g' | sed 's/"//g'| awk -F: '{print $2}' | sed -z 's/\n/,/g;s/,$/\n/' | sed 's/},/\n/g'| sed  's/ //g' | sed 's/}$//' |sed 's/^,//g'  |awk -F',' '{print $1,$2,$3,$4,$5}'| sed 's/ /,/g' >> $1.$2;
 }
 
 for ICOA in "$@"
