@@ -10,11 +10,12 @@ void printAirportSchedule(char* airportName)
     int numOfArrivals = howManyRowsInFile(arrivalsFile);
     int numOfDepartures = howManyRowsInFile(departuresFile);
 
+    char firstRowA[MAX_SIZE], firstRowD[MAX_SIZE];
     char arrivals[MAX_SIZE];
     char departures[MAX_SIZE];
 
-    fgets(arrivals, MAX_SIZE, arrivalsFile);
-    fgets(departures, MAX_SIZE, departuresFile);
+    fgets(firstRowA, MAX_SIZE, arrivalsFile);
+    fgets(firstRowD, MAX_SIZE, departuresFile);
 
     FlightData* data = (FlightData*)malloc(sizeof(FlightData) * (numOfArrivals + numOfDepartures));
     checkAllocation(data);
@@ -26,15 +27,15 @@ void printAirportSchedule(char* airportName)
         data[i].arrivalOrDeparture = ARRIVAL;
     }
 
-    for (int i = numOfArrivals - 1; i < (numOfDepartures+numOfArrivals); i++)
+    for (int i = numOfArrivals; i < (numOfDepartures + numOfArrivals); i++)
     {
-        fget(departures, MAX_SIZE, departuresFile);
+        fgets(departures, MAX_SIZE, departuresFile);
         data[i] = splitS(departures);
         data[i].arrivalOrDeparture = DEPARTURE;
     }
 
     qsort(data, numOfDepartures + numOfArrivals - 1, sizeof(FlightData), compareFlights);
-    
+
     for (int i = 0; i < numOfDepartures + numOfArrivals; i++)
     {
         printFullSchedule(data[i]);
@@ -78,11 +79,11 @@ void printFullSchedule(FlightData object)
 {
     if (object.arrivalOrDeparture == ARRIVAL)
     {
-        printf("Flight #%s arriving from %s at %s", object.flightNumber, object.departureAirPort, object.lastSeen);
+        printf("Flight #%s arriving from %s at %s\n", object.flightNumber, object.departureAirPort, object.lastSeen);
     }
 
     else if (object.arrivalOrDeparture == DEPARTURE)
     {
-        printf("Flight #%s departing to %s at %s", object.flightNumber, object.arrivalAirPort, object.firstSeen);
+        printf("Flight #%s departing to %s at %s\n", object.flightNumber, object.arrivalAirPort, object.firstSeen);
     }
 }
