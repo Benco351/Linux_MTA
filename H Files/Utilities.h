@@ -9,3 +9,4 @@ int howManyRowsInFile(FILE* file);
 void checkAllocation(void* pointer);
 char** splitString(char* str);
 void arrangeString(char** emptyString, char** dataString);
+void loadDatabase(char* airportName, FILE** departureFile, FILE** arrivalFile);

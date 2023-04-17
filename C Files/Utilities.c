@@ -106,3 +106,15 @@ void arrangeString(char** emptyString, char** dataString)
     strcat(*emptyString, dataString[LAST_SEEN]);
     strcat(*emptyString, "\0");
 }
+
+void loadDatabase(char* airportName, FILE** departureFile, FILE** arrivalFile) //Opens an airport's database.
+{
+    char dptFileName[10], arvFileName[10];
+    strcat(dptFileName, airportName);
+    strcat(dptFileName, ".dpt");
+    *departureFile = fopen(dptFileName, "r");
+
+    strcat(arvFileName, airportName);
+    strcat(arvFileName, ".arv");
+    *arrivalFile = fopen(arvFileName, "r");
+}
