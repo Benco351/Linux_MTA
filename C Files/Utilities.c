@@ -115,7 +115,7 @@ void checkAllocation(void* pointer)
 
 void openFilesByAirportName(char* airportName, FILE** departureFile, FILE** arrivalFile) //Opens an airport's database.
 {
-    char dir1[MAX_SIZE] = "flightsDB/";
+    char dir1[MAX_SIZE] = "../Bash/flightsDB/";
     char dir2[MAX_SIZE];
     strcat(dir1, airportName);
     strcat(dir1, "/");

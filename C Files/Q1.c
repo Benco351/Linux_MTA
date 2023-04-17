@@ -4,29 +4,32 @@ void printFlightsToAirport(char* airportName) //Prints all flights details to ai
 {
     FILE* arrivalsFile, *departuresFile;
     openFilesByAirportName(airportName, &departuresFile, &arrivalsFile);
-    checkAllocation(arrivalsFile);
-    checkAllocation(departuresFile);
-    int numOfFlights = howManyRowsInFile(arrivalsFile);
-    char rows[MAX_SIZE];
-    fgets(rows, MAX_SIZE, arrivalsFile); //'flush' first row.
 
-    FlightData* flightsData = (FlightData*)malloc(sizeof(FlightData) * numOfFlights);
-    checkAllocation(flightsData);
-
-    for (int i = 0; i < numOfFlights; i++)
+    if (arrivalsFile)
     {
-        fgets(rows, MAX_SIZE, arrivalsFile);
-        flightsData[i] = splitS(rows);
-        printFlightsData(flightsData[i]);
-    }
+        int numOfFlights = howManyRowsInFile(arrivalsFile);
+        char firstRow[MAX_SIZE];
+        char otherRows[MAX_SIZE];
+        fgets(firstRow, MAX_SIZE, arrivalsFile); //'flush' first row.
 
-    free(flightsData);
-    fclose(arrivalsFile);
-    fclose(departuresFile);
+        FlightData* flightsData = (FlightData*)malloc(sizeof(FlightData) * numOfFlights);
+        checkAllocation(flightsData);
+
+        for (int i = 0; i < numOfFlights; i++)
+        {
+            fgets(otherRows, MAX_SIZE, arrivalsFile);
+            flightsData[i] = splitS(otherRows);
+            printFlightsData(flightsData[i]);
+        }
+
+        free(flightsData);
+        fclose(arrivalsFile);
+        fclose(departuresFile);
+    }
 }
 
 void printFlightsData(FlightData object)
 {
     printf("Flight #%s arriving from %s, tookoff at %s landed at %s",
-    object.flightNumber, object.departureAirPort, object.firstSeen, object.lastSeen);
+           object.flightNumber, object.departureAirPort, object.firstSeen, object.lastSeen);
 }
