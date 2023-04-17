@@ -5,7 +5,7 @@ Location=$(pwd);
 handleTerminal()
 {
     echo "retrieving $1 flights information...";
-    if [ ! -d "flightsDB" ]; then
+    if [ ! -d "$Location/flightsDB" ]; then
         mkdir flightsDB;
         cd flightsDB/;
     fi
@@ -59,7 +59,7 @@ OrderJson()
         echo "Error: Output file $1.$2 is empty"
         return 1
     fi
-    cat $1.$2'json' | sed 's/,/\n/g' | sed 's/{/{\n/g' | sed 's/]//g' | sed 's/"//g'| awk -F: '{print $2}' | sed -z 's/\n/,/g;s/,$/\n/' | sed 's/},/\n/g'| sed  's/ //g' | sed 's/}$//' |sed 's/^,//g'  |awk -F',' '{print $1,$2,$3,$4,$5}'| sed 's/ /,/g' >> $1.$2;
+    cat $1.$2'json' | sed 's/,/\n/g' | sed 's/{/{\n/g' | sed 's/]//g' | sed 's/"//g'| awk -F: '{print $2}' | sed -z 's/\n/,/g;s/,$/\n/' | sed 's/},/\n/g'| sed  's/ //g' | sed 's/}$//' |sed 's/^,//g'  |awk -F',' '{print $1,$2,$3,$4,$5,$6}'| sed 's/ /,/g' >> $1.$2;
 }
 
 for ICOA in "$@"
