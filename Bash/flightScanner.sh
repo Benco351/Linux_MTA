@@ -30,25 +30,22 @@ handleTerminal()
 }     
 handleArrivalApi()
 {
-   response="$(curl -s "https://opensky-network.org/api/flights/arrival?airport=$1&begin=$2&end=$3")";  
-   if [ $? -eq 0 ]; then # Check if the curl command exited successfully
-      echo $response > $1.arvjson;
-      OrderJson $1 "arv"
-      rm $1.arvjson;
+  http_codeN_File="$(curl -w "%{http_code}" -o $1.arvjson -s "https://opensky-network.org/api/flights/arrival?airport=$1&begin=$2&end=$3")";
+   if [ $http_codeN_File -eq "200" ]; then # Check if the curl command exited successfully
+        OrderJson $1 "arv";
+        rm $1.arvjson;
    else
-       echo "Error retrieving arrival flights information for airport $1"
-    fi
- 
+       echo "$http_codeN_File status error when retrieving arrival flights information for airport $1";
+   fi
 }
 handleDepartureApi()
-{
-   response="$(curl -s "https://opensky-network.org/api/flights/departure?airport=$1&begin=$2&end=$3")";
-   if [ $? -eq 0 ]; then # Check if the curl command exited successfully
-        echo $response > $1.dptjson;
+{  
+   http_codeN_File="$(curl -w "%{http_code}" -o $1.dptjson -s "https://opensky-network.org/api/flights/departure?airport=$1&begin=$2&end=$3")"; 
+   if [ $http_codeN_File -eq "200" ]; then # Check if the curl command exited successfully
         OrderJson $1 "dpt";
         rm $1.dptjson;
    else
-       echo "Error retrieving departure flights information for airport $1";
+       echo "$http_codeN_File status error when retrieving departure flights information for airport $1";
    fi
 }
 OrderJson()
