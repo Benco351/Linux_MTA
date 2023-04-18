@@ -5,4 +5,4 @@
   void printAirportSchedule(char* airportName);
   int compareFlights(const void* a, const void* b);
   void printFullSchedule(FlightData object);
-#endif Q2_H
+#endif
