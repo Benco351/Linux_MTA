@@ -37,4 +37,4 @@
     // char** findAirCrafts(FILE* f, char** aircrafts, int nofAirCrafts);
     // char* arrangeAirCraftString(FlightData FD);
     char** createDirList(int* size);
-#endif UTILLITIES_H
+#endif
