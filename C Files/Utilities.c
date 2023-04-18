@@ -180,21 +180,21 @@ char** createDirList(int* size)
     int phySize = 1, logSize = 0;
 
     output = (char**)malloc(sizeof(char*) * phySize);
-    checkAllocation;
+    checkAllocation(output);
 
-    DIR* directory = opendir("../flightsDB/");
+    DIR* directory = opendir("../Bash/flightsDB/");
     checkAllocation(directory);
 
     struct dirent* entry;
-    while ((entry = readdir(directory)) != NULL) 
+    while ((entry = readdir(directory)) != NULL)
     {
         // Exclude hidden files/directories that start with a dot
-        if (entry->d_name[0] != '.') 
+        if (entry->d_name[0] != '.' && strlen(entry->d_name) == NAME_LEN)
         {
             if (logSize == phySize)
             {
                 phySize *= 2;
-                output = (char**)realloc(output, phySize);
+                output = (char**)realloc(output, phySize * sizeof(char*));
                 checkAllocation(output);
             }
 
@@ -207,7 +207,7 @@ char** createDirList(int* size)
         }
     }
 
-    output = (char**)realloc(output, logSize);
+    output = (char**)realloc(output, logSize * sizeof(char*));
     checkAllocation(output);
     *size = logSize;
 

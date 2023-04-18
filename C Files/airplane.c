@@ -1,21 +1,27 @@
 #include "Q3.h"
 
-void main (int argc, char* argv[])
+int main (int argc, char* argv[])
 {
     FILE* arrivalFile, *departureFile;
     int sizeOfDirList = 0;
     char** dirList = createDirList(&sizeOfDirList);
-    FlightData* data;
 
-    for (int i = 1; i < sizeOfDirList; i++)
+    for (int i = 0; i < sizeOfDirList; i++)
     {
         openFilesByAirportName(dirList[i], &departureFile, &arrivalFile);
         findAirCrafts(departureFile, argv, argc - 1);
         findAirCrafts(arrivalFile, argv, argc - 1);
-    }
-}
 
-//Count dir list
-//Create dir list
-//For each item, open file
-//For each file, call func
+        fclose(arrivalFile);
+        fclose(departureFile);
+    }
+
+    for (int i = 0; i < sizeOfDirList; i++)
+    {
+        free(dirList[i]);
+    }
+
+    free(dirList);
+
+    return 1;
+}
