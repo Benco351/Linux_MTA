@@ -31,22 +31,29 @@ handleTerminal()
 handleArrivalApi()
 {
   http_codeN_File="$(curl -w "%{http_code}" -o $1.arvjson -s "https://opensky-network.org/api/flights/arrival?airport=$1&begin=$2&end=$3")";
-   if [ $http_codeN_File -eq "200" ]; then # Check if the curl command exited successfully
+    if  [[ $http_codeN_File =~ ^2 ]]; then # Check if the curl command exited successfully
         OrderJson $1 "arv";
         rm $1.arvjson;
-   else
+    else
        echo "$http_codeN_File status error when retrieving arrival flights information for airport $1";
-   fi
+       rm $1.arvjson;
+       cd $Location/flightsDB/;
+       rm -rf $1/;
+    fi
 }
 handleDepartureApi()
 {  
    http_codeN_File="$(curl -w "%{http_code}" -o $1.dptjson -s "https://opensky-network.org/api/flights/departure?airport=$1&begin=$2&end=$3")"; 
-   if [ $http_codeN_File -eq "200" ]; then # Check if the curl command exited successfully
+    if [[ $http_codeN_File =~ ^2 ]]; then # Check if the curl command exited successfully
         OrderJson $1 "dpt";
         rm $1.dptjson;
-   else
-       echo "$http_codeN_File status error when retrieving departure flights information for airport $1";
-   fi
+    else
+        echo "$http_codeN_File status error when retrieving departure flights information for airport $1";
+        rm $1.dptjson;
+        cd $Location/flightsDB/;
+        rm -rf $1/;
+    fi
+    
 }
 OrderJson()
 {
