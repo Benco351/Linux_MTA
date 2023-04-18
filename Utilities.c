@@ -115,7 +115,7 @@ void checkAllocation(void* pointer)
 
 void openFilesByAirportName(char* airportName, FILE** departureFile, FILE** arrivalFile) //Opens an airport's database.
 {
-    char dir1[MAX_SIZE] = "../Bash/flightsDB/";
+    char dir1[MAX_SIZE] = "flightsDB/";
     char dir2[MAX_SIZE];
     strcat(dir1, airportName);
     strcat(dir1, "/");
@@ -131,7 +131,7 @@ void openFilesByAirportName(char* airportName, FILE** departureFile, FILE** arri
 
 void loadDatabase(int numOfArgs, char* airports[]) //Loads database according to arguments.
 {
-    char command[MAX_SIZE] = "/bin/bash /../Bash/flightScanner.sh";
+    char command[MAX_SIZE] = "/bin/bash /flightScanner.sh";
     for (int i = 1; i < numOfArgs; i++)
     {
         strcat(command, " $");
@@ -182,7 +182,7 @@ char** createDirList(int* size)
     output = (char**)malloc(sizeof(char*) * phySize);
     checkAllocation(output);
 
-    DIR* directory = opendir("../Bash/flightsDB/");
+    DIR* directory = opendir("flightsDB/");
     checkAllocation(directory);
 
     struct dirent* entry;
