@@ -4,4 +4,4 @@
 
   void findAirCrafts(FILE* f, char** aircrafts, int nofAirCrafts);
   void printQ3(FlightData FD);
-#endif Q3_H
+#endif
