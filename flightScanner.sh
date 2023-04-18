@@ -15,9 +15,8 @@ handleTerminal()
     cd $Location/flightsDB/;
     if [ ! -d "$WorkingFolder" ]; then 
         mkdir $1
-        cd $1/
     fi
-       
+    cd $1/
     if [ ! -f "$WorkingFolder/$1.arv" ]; then 
         touch $WorkingFolder/$1.arv;
     fi
@@ -71,5 +70,5 @@ OrderJson()
 
 for ICOA in "$@"
 do
-    handleTerminal $ICOA //LLBG
+    handleTerminal $ICOA
 done

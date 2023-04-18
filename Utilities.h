@@ -18,14 +18,15 @@
     typedef struct flightData
     {
         char icao24[FD_MAX];
-        char firstSeen[FD_MAX];
+        char firstSeen[FD_MAX + 5];
         char departureAirPort[FD_MAX];
-        char lastSeen[FD_MAX];
+        char lastSeen[FD_MAX + 5];
         char arrivalAirPort[FD_MAX];
         char flightNumber[FD_MAX];
         unsigned short arrivalOrDeparture;
     } FlightData;
 
+    char* unix_time_to_date(const char* timestamp_str);
     // char** get_flights_data_in_airport(char* fileName);
     int howManyRowsInFile(FILE* file);
     void checkAllocation(void* pointer);

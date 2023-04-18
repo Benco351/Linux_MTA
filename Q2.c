@@ -2,6 +2,7 @@
 
 void printAirportSchedule(char* airportName)
 {
+    printf("-------------------------%s-------------------------\n",airportName);
     FILE* arrivalsFile, *departuresFile;
     openFilesByAirportName(airportName, &departuresFile, &arrivalsFile);
     checkAllocation(arrivalsFile);
@@ -79,11 +80,11 @@ void printFullSchedule(FlightData object)
 {
     if (object.arrivalOrDeparture == ARRIVAL)
     {
-        printf("Flight #%s arriving from %s at %s\n", object.flightNumber, object.departureAirPort, object.lastSeen);
+        printf("Flight #%-7s arriving from %s at %s\n", object.flightNumber, object.departureAirPort, object.lastSeen);
     }
 
     else if (object.arrivalOrDeparture == DEPARTURE)
     {
-        printf("Flight #%s departing to %s at %s\n", object.flightNumber, object.arrivalAirPort, object.firstSeen);
+        printf("Flight #%-7s departing to  %s at %s\n", object.flightNumber, object.arrivalAirPort, object.firstSeen);
     }
 }

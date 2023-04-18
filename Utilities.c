@@ -5,44 +5,15 @@ FlightData splitS(char* str)
     FlightData FD;
 
     strcpy(FD.icao24, strtok(str, ","));
-    strcpy(FD.firstSeen, strtok(NULL, ","));
+    strcpy(FD.firstSeen, unix_time_to_date(strtok(NULL, ",")));
     strcpy(FD.departureAirPort, strtok(NULL, ","));
-    strcpy(FD.lastSeen, strtok(NULL, ","));
+    strcpy(FD.lastSeen, unix_time_to_date(strtok(NULL, ",")));
     strcpy(FD.arrivalAirPort, strtok(NULL, ","));
     strcpy(FD.flightNumber, strtok(NULL, ",\n"));
 
     return FD;
 }
 
-// char** get_flights_data_in_airport(char* fileName)
-// {
-//     char** flightsData = NULL;
-//     FILE* newFile = fopen(fileName, "r");
-//     checkAllocation(newFile);
-
-//     int numOfFlights = howManyRowsInFile(newFile);
-//     flightsData = (char**)malloc(sizeof(char*) * numOfFlights);
-//     checkAllocation(flightsData);
-//     char temp[MAX_SIZE];
-//     fgets(temp, MAX_SIZE, newFile); // get rid of info line
-//     int rowLen = 0;
-
-//     for (int i = 0; i < numOfFlights; i++)
-//     {
-//         flightsData[i] = (char*)malloc(sizeof(char) * MAX_SIZE);
-//         checkAllocation(flightsData[i]);
-//         fgets(temp, MAX_SIZE, newFile);
-//         char** processedData = splitString(temp);
-//         arrangeString(&flightsData[i], processedData);
-//         rowLen = strlen(flightsData[i]);
-//         flightsData[i] = (char*)realloc(flightsData[i], rowLen + 1);
-//         flightsData[rowLen] = '\0';
-//         free(processedData);
-//     }
-
-//     fclose(newFile);
-//     return flightsData;
-// }
 
 int howManyRowsInFile(FILE* fileName)
 {
@@ -66,52 +37,6 @@ void checkAllocation(void* pointer)
         exit(-1);
 }
 
-// char** splitString(char* str)
-// {
-//     char** output = (char**)malloc(sizeof(char*) * NUM_OF_COLUMNS);
-//     checkAllocation(output);
-//     int size = 0;
-
-//     for (int i = 0; i < NUM_OF_COLUMNS; i++)
-//     {
-//         output[i] = (char*)malloc(sizeof(char) * MAX_SIZE);
-//         checkAllocation(output[i]);
-
-//         if (i == 0)
-//         {
-//             strcpy(output[i], strtok(str, ","));
-//         }
-
-//         else if (i > 0)
-//         {
-//             strcpy(output[i], strtok(NULL, ","));
-//         }
-
-//         size = strlen(output[i]) + 1;
-
-//         if (output[i][size - 2] == '\n')
-//             size -= 1;
-
-//         output[i] = realloc(output[i], size);
-//         checkAllocation(output[i]);
-//         output[size] = '\0';
-//     }
-
-//     return output;
-// }
-
-// void arrangeString(char** emptyString, char** dataString)
-// {
-//     strcat(*emptyString, "Flight #");
-//     strcat(*emptyString, dataString[FLIGHT_NUMBER]);
-//     strcat(*emptyString, " arriving from ");
-//     strcat(*emptyString, dataString[DEPARTURE_AIRPORT]);
-//     strcat(*emptyString, ", takeoff at ");
-//     strcat(*emptyString, dataString[FIRST_SEEN]);
-//     strcat(*emptyString, " landed at ");
-//     strcat(*emptyString, dataString[LAST_SEEN]);
-//     strcat(*emptyString, "\0");
-// }
 
 void openFilesByAirportName(char* airportName, FILE** departureFile, FILE** arrivalFile) //Opens an airport's database.
 {
@@ -131,11 +56,11 @@ void openFilesByAirportName(char* airportName, FILE** departureFile, FILE** arri
 
 void loadDatabase(int numOfArgs, char* airports[]) //Loads database according to arguments.
 {
-    char command[MAX_SIZE] = "/bin/bash /flightScanner.sh";
-    for (int i = 1; i < numOfArgs; i++)
+    char command[MAX_SIZE] = "bash flightScanner.sh";
+    for (int i = 0; i < numOfArgs; i++)
     {
-        strcat(command, " $");
-        strcat(command, airports[i]);
+       strcat(command," ");
+       strcat(command,airports[i]);
     }
 
     system(command);

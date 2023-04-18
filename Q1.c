@@ -2,6 +2,7 @@
 
 void printFlightsToAirport(char* airportName) //Prints all flights details to airportName.
 {
+    printf("-------------------------%s-------------------------\n",airportName);
     FILE* arrivalsFile, *departuresFile;
     openFilesByAirportName(airportName, &departuresFile, &arrivalsFile);
 
@@ -30,6 +31,6 @@ void printFlightsToAirport(char* airportName) //Prints all flights details to ai
 
 void printFlightsData(FlightData object)
 {
-    printf("Flight #%s arriving from %s, tookoff at %s landed at %s",
+    printf("Flight #%-7s arriving from %s, tookoff at %s landed at %s\n",
            object.flightNumber, object.departureAirPort, object.firstSeen, object.lastSeen);
 }
