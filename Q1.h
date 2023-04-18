@@ -4,4 +4,4 @@
 
   void printFlightsToAirport(char* airportName);
   void printFlightsData(FlightData object);
-#endif Q1_H
+#endif
