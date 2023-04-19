@@ -1,5 +1,7 @@
 #include "Utilities.h"
 
+//this function gets a string
+//splits the string into type FlightData and returns it
 FlightData splitS(char* str)
 {
     FlightData FD;
@@ -14,7 +16,7 @@ FlightData splitS(char* str)
     return FD;
 }
 
-
+//this function checks how many flights are in a specific file
 int howManyRowsInFile(FILE* fileName)
 {
     int counter = 0;
@@ -36,7 +38,6 @@ void checkAllocation(void* pointer)
     if (pointer == NULL)
         exit(-1);
 }
-
 
 void openFilesByAirportName(char* airportName, FILE** departureFile, FILE** arrivalFile) //Opens an airport's database.
 {
@@ -68,7 +69,6 @@ void loadDatabase(int numOfArgs, char* airports[]) //Loads database according to
 
 //this function gets and open file of specific airport, the aircrafts searched for and their number
 //returns all flights for said aircrafts in given airport
-
 char* unix_time_to_date(const char* timestamp_str) {
     time_t timestamp = atoi(timestamp_str);
     struct tm* timeinfo_local;

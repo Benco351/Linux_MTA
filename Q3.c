@@ -22,6 +22,7 @@ void findAirCrafts(FILE* f, char** aircraft, int nofAirCrafts)
     }
 }
 
+//this function prints flight data
 void printQ3(FlightData FD)
 {
     printf("%s departed from %s at %s arrived in %s at %s\n",

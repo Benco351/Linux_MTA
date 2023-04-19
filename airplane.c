@@ -1,5 +1,7 @@
 #include "Q3.h"
 
+//this main gets a string with names of airplains 
+//prints all of the airplains flights in the data
 int main (int argc, char* argv[])
 {
     FILE* arrivalFile, *departureFile;
