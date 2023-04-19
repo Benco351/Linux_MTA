@@ -1,5 +1,7 @@
 #include "Q2.h"
 
+//this function gets Airport name
+//prints its schedule in order of time
 void printAirportSchedule(char* airportName)
 {
     printf("-------------------------%s-------------------------\n",airportName);
@@ -47,6 +49,7 @@ void printAirportSchedule(char* airportName)
     fclose(departuresFile);
 }
 
+//this function compares Flights
 int compareFlights(const void* a, const void* b)
 {
     const FlightData* first = (const void*) a;
@@ -76,6 +79,7 @@ int compareFlights(const void* a, const void* b)
     return output;
 }
 
+//this function prints flight data 
 void printFullSchedule(FlightData object)
 {
     if (object.arrivalOrDeparture == ARRIVAL)
