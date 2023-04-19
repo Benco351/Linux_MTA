@@ -7,13 +7,10 @@ LIBS=-L./$(BUILDDIR) -lUtilities
 SOURCES=$(wildcard *.c)
 OBJECTS=$(SOURCES:%.c=$(BUILDDIR)/%.o)
 
-
 all: libUtilities.so arrivals.out full_schedule.out airplane.out RefreshDB.out
 
 libUtilities.so: $(BUILDDIR)/Utilities.o
 	@$(CC) $(LDFLAGS) $< -o $(BUILDDIR)/$@
-	@echo "Exporting LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)"
-	export LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)$(BUILDDIR)
 
 $(BUILDDIR)/Utilities.o: Utilities.c Utilities.h | $(BUILDDIR)
 	@$(CC) $(CFLAGS) $< -o $@
