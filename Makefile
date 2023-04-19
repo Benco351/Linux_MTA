@@ -1,22 +1,19 @@
+SHELL := /bin/bash
 CC=gcc
 CFLAGS=-c -fPIC
-LDFLAGS=-shared -o libUtilities.so
+LDFLAGS=-shared  -o libUtilities.so
 BUILDDIR=build
 LIBS=-L./$(BUILDDIR) -lUtilities
-
 SOURCES=$(wildcard *.c)
 OBJECTS=$(SOURCES:%.c=$(BUILDDIR)/%.o)
-
 
 all: libUtilities.so arrivals.out full_schedule.out airplane.out RefreshDB.out
 
 libUtilities.so: $(BUILDDIR)/Utilities.o
-	@$(CC) $(LDFLAGS) $< -o $(BUILDDIR)/$@
-	@echo "Exporting LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)"
-	export LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)$(BUILDDIR)
+	$(CC) $(LDFLAGS)  $< -o $(BUILDDIR)/$@
 
 $(BUILDDIR)/Utilities.o: Utilities.c Utilities.h | $(BUILDDIR)
-	@$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $@
 
 arrivals.out: arrivals.c Q1.o | $(BUILDDIR)
 	@$(CC) $< $(BUILDDIR)/Q1.o $(LIBS) -o $@

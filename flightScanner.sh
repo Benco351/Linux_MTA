@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 Location=$(pwd);
+
 #function that handle a Terminal.
 handleTerminal()
 {
