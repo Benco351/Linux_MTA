@@ -10,10 +10,10 @@ OBJECTS=$(SOURCES:%.c=$(BUILDDIR)/%.o)
 all: libUtilities.so arrivals.out full_schedule.out airplane.out RefreshDB.out
 
 libUtilities.so: $(BUILDDIR)/Utilities.o
-	$(CC) $(LDFLAGS)  $< -o $(BUILDDIR)/$@
+	@$(CC) $(LDFLAGS)  $< -o $(BUILDDIR)/$@
 
 $(BUILDDIR)/Utilities.o: Utilities.c Utilities.h | $(BUILDDIR)
-	$(CC) $(CFLAGS) $< -o $@
+	@$(CC) $(CFLAGS) $< -o $@
 
 arrivals.out: arrivals.c Q1.o | $(BUILDDIR)
 	@$(CC) $< $(BUILDDIR)/Q1.o $(LIBS) -o $@
@@ -40,8 +40,8 @@ RefreshDB.out: RefreshDB.o | $(BUILDDIR)
 	@$(CC) $(BUILDDIR)/$< $(LIBS) -o $@
 
 $(BUILDDIR):
-	mkdir -p $(BUILDDIR)
-
+	@mkdir -p $(BUILDDIR)
+	@echo "finished all commands"
 clean:
 	rm -rf $(BUILDDIR)/
 	rm arrivals.out full_schedule.out airplane.out RefreshDB.out
