@@ -1,5 +1,6 @@
 #include "Q1.h"
 
+
 void printFlightsToAirport(char* airportName) //Prints all flights details to airportName.
 {
     printf("-------------------------%s-------------------------\n",airportName);
@@ -29,6 +30,7 @@ void printFlightsToAirport(char* airportName) //Prints all flights details to ai
     }
 }
 
+//this function prints flights data
 void printFlightsData(FlightData object)
 {
     printf("Flight #%-7s arriving from %s, tookoff at %s landed at %s\n",
