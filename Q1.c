@@ -3,7 +3,6 @@
 
 void printFlightsToAirport(char* airportName) //Prints all flights details to airportName.
 {
-    printf("-------------------------%s-------------------------\n",airportName);
     FILE* arrivalsFile, *departuresFile;
     openFilesByAirportName(airportName, &departuresFile, &arrivalsFile);
 
@@ -16,7 +15,8 @@ void printFlightsToAirport(char* airportName) //Prints all flights details to ai
 
         FlightData* flightsData = (FlightData*)malloc(sizeof(FlightData) * numOfFlights);
         checkAllocation(flightsData);
-
+        
+        printf("-------------------------%s-------------------------\n",airportName);
         for (int i = 0; i < numOfFlights; i++)
         {
             fgets(otherRows, MAX_SIZE, arrivalsFile);

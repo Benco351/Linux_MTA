@@ -4,12 +4,13 @@
 //prints its schedule in order of time
 void printAirportSchedule(char* airportName)
 {
-    printf("-------------------------%s-------------------------\n",airportName);
     FILE* arrivalsFile, *departuresFile;
     openFilesByAirportName(airportName, &departuresFile, &arrivalsFile);
     checkAllocation(arrivalsFile);
     checkAllocation(departuresFile);
 
+    if (arrivalsFile && departuresFile)
+    {
     int numOfArrivals = howManyRowsInFile(arrivalsFile);
     int numOfDepartures = howManyRowsInFile(departuresFile);
 
@@ -39,6 +40,7 @@ void printAirportSchedule(char* airportName)
 
     qsort(data, numOfDepartures + numOfArrivals - 1, sizeof(FlightData), compareFlights);
 
+    printf("-------------------------%s-------------------------\n",airportName);
     for (int i = 0; i < numOfDepartures + numOfArrivals; i++)
     {
         printFullSchedule(data[i]);
@@ -47,6 +49,7 @@ void printAirportSchedule(char* airportName)
     free(data);
     fclose(arrivalsFile);
     fclose(departuresFile);
+    }
 }
 
 //this function compares Flights
