@@ -1,14 +1,4 @@
-Submission by:
-----------------------
-Name: Ben Cohen
-ID: 209454917
-----------------------
-Name: Smadar Shoshan
-ID: 313514911
-----------------------
-Name: Elior Migdal
-ID: 313455321
-----------------------
+Submission by:***********
 HOW TO RUN OUR PROGRAM?:
 1. First, open terminal and navigate to submission directory.
 2. Run our bash script by typing 'bash flightScanner.sh <arg1> <arg2> <...>' in terminal.
