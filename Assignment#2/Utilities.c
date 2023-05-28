@@ -1,6 +1,146 @@
 #include "Utilities.h"
 
+//////////////////////////////Data Base Functions//////////////////////////////
+
+
+//free Data base
+void freeDataBase(DB* db)
+{
+    for (int i = 0; i < db->nofAirports; i++) {
+        free(db->airPortsNames[i]);
+    }
+    free(db->airPortsNames);
+
+    for (int i = 0; i < db->nofAirports; i++)
+    {
+            free(db->airPortsArr[i].arivals);
+            free(db->airPortsArr[i].Departurs);
+    }
+}
+
+//build data base
+DB* getDataBase(int numOfArgs, char* airports[])
+{
+    DB* DataBase;
+    DataBase->nofAirports = numOfArgs;
+    DataBase->airPortsArr = (AirPorts*)malloc(sizeof(AirPorts) * numOfArgs);
+    checkAllocation(DataBase->airPortsArr);
+   
+
+    //reorder airporst names:
+    DataBase->airPortsNames = reorderStringArray(numOfArgs, airports);
+
+    //get the data base for each airport
+    for (int q = 0; q < numOfArgs; q++)
+    {   
+        FILE* arrivalsFile, * departuresFile;
+        char firstRowA[MAX_SIZE];
+        char firstRowD[MAX_SIZE];
+        char arrivals[MAX_SIZE];
+        char departures[MAX_SIZE];
+
+        openFilesByAirportName(DataBase->airPortsNames[q], &departuresFile, &arrivalsFile);
+
+        DataBase->airPortsArr[q].SizeArivals = howManyRowsInFile(arrivalsFile);
+        DataBase->airPortsArr[q].SizeDeparturs = howManyRowsInFile(departuresFile);
+
+        fgets(firstRowA, MAX_SIZE, arrivalsFile);
+        fgets(firstRowD, MAX_SIZE, departuresFile);
+
+        for (int i = 0; i < DataBase->airPortsArr[q].SizeArivals; i++)
+        {
+            fgets(arrivals, MAX_SIZE, arrivalsFile);
+            DataBase->airPortsArr[q].arivals[i] = splitS(arrivals);
+            DataBase->airPortsArr[q].arivals[i].arrivalOrDeparture = ARRIVAL;
+        }
+
+        for (int i = 0; i < (DataBase->airPortsArr[q].SizeDeparturs); i++)
+        {
+            fgets(departures, MAX_SIZE, departuresFile);
+            DataBase->airPortsArr[q].Departurs[i] = splitS(departures);
+            DataBase->airPortsArr[q].Departurs[i].arrivalOrDeparture = DEPARTURE;
+        }
+
+        fclose(arrivalsFile);
+        fclose(departuresFile);
+    }
+
+    return DataBase;
+}
+
+void swap(char* arr[], int i, int j)
+{
+    char* temp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = temp;
+}
+
+int partition(char* arr[], int low, int high)
+{
+    int pivot_length = strlen(arr[high]);
+    int i = low - 1;
+
+    for (int j = low; j <= high - 1; j++) {
+        if (strlen(arr[j]) <= pivot_length) {
+            i++;
+            swap(arr, i, j);
+        }
+    }
+    swap(arr, i + 1, high);
+    return (i + 1);
+}
+
+void quickSort(char* arr[], int low, int high)
+{
+    if (low < high) {
+        int pivot = partition(arr, low, high);
+        quickSort(arr, low, pivot - 1);
+        quickSort(arr, pivot + 1, high);
+    }
+}
+
+char** reorderStringArray(int numOfArgs, char* airports[])
+{
+    // Create a new array to store the reordered strings
+    char** reordered = (char**)malloc(numOfArgs * sizeof(char*));
+    checkAllocation(reordered);
+    for (int i = 0; i < numOfArgs; i++) {
+        reordered[i] = (char*)malloc((strlen(airports[i]) + 1) * sizeof(char));
+        checkAllocation(reordered[i]);
+        strcpy(reordered[i], airports[i]);
+    }
+
+    quickSort(reordered, 0, numOfArgs - 1);
+
+    return reordered;
+}
+
 //////////////////////////////General Functions//////////////////////////////
+
+//this is a search function to find the needed airport
+int quickSearch(char* arr[], int size, char* target) {
+    int left = 0;
+    int right = size - 1;
+
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+
+        if (strcmp(arr[mid], target) == 0) {
+            return mid;  // Found the target at index mid
+        }
+
+        if (strcmp(arr[mid], target) < 0) {
+            left = mid + 1;  // Target is in the right half
+        }
+        else {
+            right = mid - 1;  // Target is in the left half
+        }
+    }
+
+    return -1;  // Target not found
+}
+
+
 //this function gets a string
 //splits the string into type FlightData and returns it
 FlightData splitS(char* str)
@@ -141,32 +281,20 @@ char** createDirList(int* size)
     return output;
 }
 //////////////////////////////Q1 Functions//////////////////////////////
-void printFlightsToAirport(char* airportName) //Prints all flights details to airportName.
+void printFlightsToAirport(char* airportName, DB db) //Prints all flights details to airportName.
 {
-    FILE* arrivalsFile, *departuresFile;
-    openFilesByAirportName(airportName, &departuresFile, &arrivalsFile);
-
-    if (arrivalsFile)
-    {
-        int numOfFlights = howManyRowsInFile(arrivalsFile);
-        char firstRow[MAX_SIZE];
-        char otherRows[MAX_SIZE];
-        fgets(firstRow, MAX_SIZE, arrivalsFile); //'flush' first row.
-
-        FlightData* flightsData = (FlightData*)malloc(sizeof(FlightData) * numOfFlights);
-        checkAllocation(flightsData);
-        
-        printf("-------------------------%s-------------------------\n",airportName);
-        for (int i = 0; i < numOfFlights; i++)
+    int j = quickSearch(db.airPortsNames, db.nofAirports, airportName);
+    if(j != -1)
+    { 
+        printf("-------------------------%s-------------------------\n", airportName);
+        for (int i = 0; i < db.airPortsArr[j].SizeArivals; i++)
         {
-            fgets(otherRows, MAX_SIZE, arrivalsFile);
-            flightsData[i] = splitS(otherRows);
-            printFlightsData(flightsData[i]);
+                printFlightsData(db.airPortsArr[j].arivals[i]);
         }
-
-        free(flightsData);
-        fclose(arrivalsFile);
-        fclose(departuresFile);
+    }
+    else
+    {
+        printf("\n%s does not exist in data base", airportName);
     }
 }
 
@@ -177,95 +305,77 @@ void printFlightsData(FlightData object)
            object.flightNumber, object.departureAirPort, object.firstSeen, object.lastSeen);
 }
 
-void runQ1(char* parameters[], int numOfParameters)
+void runQ1(char* parameters[], int numOfParameters, DB db)
 {
     for (int i = 1; i < numOfParameters; i++)
     {
-        printFlightsToAirport(parameters[i]);
+        printFlightsToAirport(parameters[i], db);
     }
 }
 //////////////////////////////Q2 Functions//////////////////////////////
 //this function gets Airport name
 //prints its schedule in order of time
-void printAirportSchedule(char* airportName)
+void printAirportSchedule(char* airportName, DB db)
 {
-    FILE* arrivalsFile, *departuresFile;
-    openFilesByAirportName(airportName, &departuresFile, &arrivalsFile);
-    checkAllocation(arrivalsFile);
-    checkAllocation(departuresFile);
-
-    if (arrivalsFile && departuresFile)
-    {
-    int numOfArrivals = howManyRowsInFile(arrivalsFile);
-    int numOfDepartures = howManyRowsInFile(departuresFile);
-
-    char firstRowA[MAX_SIZE], firstRowD[MAX_SIZE];
-    char arrivals[MAX_SIZE];
-    char departures[MAX_SIZE];
-
-    fgets(firstRowA, MAX_SIZE, arrivalsFile);
-    fgets(firstRowD, MAX_SIZE, departuresFile);
-
-    FlightData* data = (FlightData*)malloc(sizeof(FlightData) * (numOfArrivals + numOfDepartures));
+    int j = quickSearch(db.airPortsNames, db.nofAirports, airportName);
+    int size = db.airPortsArr[j].SizeArivals + db.airPortsArr[j].SizeDeparturs;
+    FlightData* data = (FlightData*)malloc(sizeof(FlightData) * (size));
     checkAllocation(data);
 
-    for (int i = 0; i < numOfArrivals; i++)
+    for (int a = 0, d = 0; (a+d) < size;)
     {
-        fgets(arrivals, MAX_SIZE, arrivalsFile);
-        data[i] = splitS(arrivals);
-        data[i].arrivalOrDeparture = ARRIVAL;
-    }
-
-    for (int i = numOfArrivals; i < (numOfDepartures + numOfArrivals); i++)
-    {
-        fgets(departures, MAX_SIZE, departuresFile);
-        data[i] = splitS(departures);
-        data[i].arrivalOrDeparture = DEPARTURE;
-    }
-
-    qsort(data, numOfDepartures + numOfArrivals - 1, sizeof(FlightData), compareFlights);
-
-    printf("-------------------------%s-------------------------\n",airportName);
-    for (int i = 0; i < numOfDepartures + numOfArrivals; i++)
-    {
-        printFullSchedule(data[i]);
-    }
-
-    free(data);
-    fclose(arrivalsFile);
-    fclose(departuresFile);
+        if (a == db.airPortsArr[j].SizeArivals)
+        {
+            printFullSchedule(db.airPortsArr[j].Departurs[d]);
+            d++;
+        }
+        if (d == db.airPortsArr[j].SizeDeparturs)
+        {
+            printFullSchedule(db.airPortsArr[j].arivals[a]);
+            a++;
+        }
+        if (strcmp(db.airPortsArr[j].arivals[a].lastSeen, db.airPortsArr[j].Departurs[d].firstSeen) < 0)
+        {
+            printFullSchedule(db.airPortsArr[j].Departurs[d]);
+            d++;
+        }
+        else
+        {
+            printFullSchedule(db.airPortsArr[j].arivals[a]);
+            a++;
+        }
     }
 }
 
 //this function compares Flights
-int compareFlights(const void* a, const void* b)
-{
-    const FlightData* first = (const void*) a;
-    const FlightData* second = (const void*) b;
-    int output = 0;
-
-    if (first->arrivalOrDeparture == ARRIVAL && second->arrivalOrDeparture == ARRIVAL)
-    {
-        output = strcmp(first->lastSeen, second->lastSeen);
-    }
-
-    else if (first->arrivalOrDeparture == ARRIVAL && second->arrivalOrDeparture == DEPARTURE)
-    {
-        output = strcmp(first->lastSeen, second->firstSeen);
-    }
-
-    else if (first->arrivalOrDeparture == DEPARTURE && second->arrivalOrDeparture == ARRIVAL)
-    {
-        output = strcmp(first->firstSeen, second->lastSeen);
-    }
-
-    else
-    {
-        output = strcmp(first->firstSeen, second->firstSeen);
-    }
-
-    return output;
-}
+//int compareFlights(const void* a, const void* b)
+//{
+//    const FlightData* first = (const void*) a;
+//    const FlightData* second = (const void*) b;
+//    int output = 0;
+//
+//    if (first->arrivalOrDeparture == ARRIVAL && second->arrivalOrDeparture == ARRIVAL)
+//    {
+//        output = strcmp(first->lastSeen, second->lastSeen);
+//    }
+//
+//    else if (first->arrivalOrDeparture == ARRIVAL && second->arrivalOrDeparture == DEPARTURE)
+//    {
+//        output = strcmp(first->lastSeen, second->firstSeen);
+//    }
+//
+//    else if (first->arrivalOrDeparture == DEPARTURE && second->arrivalOrDeparture == ARRIVAL)
+//    {
+//        output = strcmp(first->firstSeen, second->lastSeen);
+//    }
+//
+//    else
+//    {
+//        output = strcmp(first->firstSeen, second->firstSeen);
+//    }
+//
+//    return output;
+//}
 
 //this function prints flight data 
 void printFullSchedule(FlightData object)
@@ -281,32 +391,40 @@ void printFullSchedule(FlightData object)
     }
 }
 
-void runQ2(char* parameters[], int numOfParameters)
+void runQ2(char* parameters[], int numOfParameters, DB db)
 {
         for (int i = 1; i < numOfParameters; i++)
     {
-        printAirportSchedule(parameters[i]);
+        printAirportSchedule(parameters[i], db);
     }
 }
 //////////////////////////////Q3 Functions//////////////////////////////
 //this function gets and open file of specific airport, the aircraft searched for and their number
 //returns all flights for said aircraft in given airport
-void findAirCrafts(FILE* f, char** aircraft, int nofAirCrafts)
+void findAirCrafts(char** aircraft, int nofAirCrafts, DB db)
 {
-    int numOfFlights = howManyRowsInFile(f);
-    char firstRow[MAX_SIZE], otherRows[MAX_SIZE];
-    fgets(firstRow, MAX_SIZE, f); // get rid of info line
-
-    for (int i = 0; i < numOfFlights; i++)
+    for (int j = 0; j < db.nofAirports; j++)
     {
-        fgets(otherRows, MAX_SIZE, f);
-        FlightData FD = splitS(otherRows);
-        for (int j = 0; j < nofAirCrafts; j++)
+        for (int k = 0; k < db.airPortsArr[j].SizeArivals; k++)
         {
-            if (strcmp(FD.icao24, aircraft[j + 1]) == 0)
+            for (int t = 0; t < nofAirCrafts; t++)
             {
-                printQ3(FD);
+                if (strcmp(db.airPortsArr[j].arivals[k].icao24, aircraft[t + 1]) == 0)
+                {
+                    printQ3(db.airPortsArr[j].arivals[k]);
+                }
             }
+        }
+        for (int k = 0; k < db.airPortsArr[j].SizeDeparturs; k++)
+        {
+            for (int t = 0; t < nofAirCrafts; t++)
+            {
+                if (strcmp(db.airPortsArr[j].Departurs[k].icao24, aircraft[t + 1]) == 0)
+                {
+                    printQ3(db.airPortsArr[j].Departurs[k]);
+                }
+            }
+
         }
     }
 }
@@ -318,30 +436,9 @@ void printQ3(FlightData FD)
            FD.icao24, FD.departureAirPort, FD.firstSeen, FD.arrivalAirPort, FD.lastSeen);
 }
 
-void runQ3(char* parameters[], int numOfParameters)
+void runQ3(char* parameters[], int numOfParameters, DB db)
 {
-    FILE* arrivalFile, *departureFile;
-    int sizeOfDirList = 0;
-    char** dirList = createDirList(&sizeOfDirList);
-
-    for (int i = 0; i < sizeOfDirList; i++)
-    {
-        openFilesByAirportName(dirList[i], &departureFile, &arrivalFile);
-        findAirCrafts(departureFile, parameters, numOfParameters - 1);
-        findAirCrafts(arrivalFile, parameters, numOfParameters - 1);
-
-        fclose(arrivalFile);
-        fclose(departureFile);
-    }
-
-    for (int i = 0; i < sizeOfDirList; i++)
-    {
-        free(dirList[i]);
-    }
-
-    free(dirList);
-
-    return 1;
+    findAirCrafts(parameters, numOfParameters, db);
 }
 //////////////////////////////Q4 Functions//////////////////////////////
 void runQ4()

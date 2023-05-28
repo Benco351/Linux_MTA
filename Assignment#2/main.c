@@ -14,6 +14,9 @@ void child_process(int pipefd[2], int choice) {
     close(pipefd[0]); // Close the read end of the pipe
 
     int result = 0;
+    //TODO!!
+    //build data base and send into choices
+
 
     switch (choice) {
         case 1:
@@ -39,6 +42,8 @@ void child_process(int pipefd[2], int choice) {
             printf("Invalid choice.\n");
             result = -1; // Indicate an invalid choice
             break;
+
+        //TODO - free data base
     }
 
     // Write the result to the pipe

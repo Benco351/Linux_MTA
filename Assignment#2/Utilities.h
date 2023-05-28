@@ -25,7 +25,30 @@
         unsigned short arrivalOrDeparture;
     } FlightData;
 
+    typedef struct airports
+    {
+        int SizeArivals;
+        FlightData* arivals;
+        int SizeDeparturs;
+        FlightData* Departurs;
+    } AirPorts;
+
+    typedef struct DataBase
+    {
+        int nofAirports;
+        AirPorts* airPortsArr;
+        char** airPortsNames;
+    } DB;
+
+    //////////////////////////////Data Base Functions//////////////////////////////
+    void freeDataBase(DB* db);
+    DB* getDataBase(int numOfArgs, char* airports[]);
+    void swap(char* arr[], int i, int j);
+    int partition(char* arr[], int low, int high);
+    void quickSort(char* arr[], int low, int high);
+    char** reorderStringArray(int numOfArgs, char* airports[]);
     //////////////////////////////General Functions//////////////////////////////
+    int quickSearch(char* arr[], int size, char* target);
     char* unix_time_to_date(const char* timestamp_str);
     int howManyRowsInFile(FILE* file);
     void checkAllocation(void* pointer);
@@ -34,18 +57,18 @@
     FlightData splitS(char* str);
     char** createDirList(int* size);
     //////////////////////////////Q1 Functions//////////////////////////////
-    void printFlightsToAirport(char* airportName);
+    void printFlightsToAirport(char* airportName, DB db);
     void printFlightsData(FlightData object);
-    void runQ1(char* parameters[], int numOfParameters);
+    void runQ1(char* parameters[], int numOfParameters, DB db);
     //////////////////////////////Q2 Functions//////////////////////////////
-    void printAirportSchedule(char* airportName);
+    void printAirportSchedule(char* airportName, DB db);
     int compareFlights(const void* a, const void* b);
     void printFullSchedule(FlightData object);
-    void runQ2(char* parameters[], int numOfParameters);
+    void runQ2(char* parameters[], int numOfParameters, DB db);
     //////////////////////////////Q3 Functions//////////////////////////////
-    void findAirCrafts(FILE* f, char** aircrafts, int nofAirCrafts);
+    void findAirCrafts(char** aircrafts, int nofAirCrafts, DB db);
     void printQ3(FlightData FD);
-    void runQ3(char* parameters[], int numOfParameters);
+    void runQ3(char* parameters[], int numOfParameters, DB db);
     //////////////////////////////Q4 Functions//////////////////////////////
     void runQ4();
     //////////////////////////////Q5 Functions//////////////////////////////
