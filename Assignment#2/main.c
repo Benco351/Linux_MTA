@@ -1,156 +1,106 @@
-#define _CRT_SECURE_NO_WARNINGS
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/wait.h>
-#include <signal.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 #include "Utilities.h"
-#define CHILD_ID 6
 
-void child_process(int pipefd[2], int choice) {
-    close(pipefd[0]); // Close the read end of the pipe
+int main() {
+    int pipeToChild[2]; // Pipe for sending numbers from parent to child
+    int pipeToParent[2]; // Pipe for sending signals from child to parent
+    int number, result;
+    pid_t pid;
+    DB* dataBase;
+    bool first = true;
 
-    int result = 0;
-
-    switch (choice)
-    {
-        case 1:
-            receive_airport_icao(pipefd[1]);
-            break;
-        case 2:
-            receive_airport_name(pipefd[1]);
-            break;
-        case 3:
-            receive_aircraft_names(pipefd[1]);
-            break;
-        case 4:
-            update_airports(pipefd[1]);
-            break;
-        case 5:
-            zip_db_files(pipefd[1]);
-            break;
-        case 6:
-            result = getpid();
-            write(pipefd[1], &result, sizeof(int));
-            break;
-        case 7:
-            printf("Graceful exit signal received\n");
-            zip_db_files(pipefd[1]);
-            exit(0);
-        default:
-            printf("Invalid choice.\n");
-            result = -1; // Indicate an invalid choice
-            write(pipefd[1], &result, sizeof(int));
-            break;
-    }
-
-    close(pipefd[1]); // Close the write end of the pipe
-    exit(0);
-}
-
-void graceful_exit_handler(int signum) {
-    if (signum == SIGUSR1)
-    {
-        printf("Graceful exit signal received\n");
-        zip_db_files(); // Assuming this function takes care of the DB zipping
-        exit(0);
-    }
-}
-
-void sigint_handler(int signum)
-{
-    if (signum == SIGINT) {
-        printf("CTRL+C signal received\n");
-        kill(getpid(), SIGUSR1);
-    }
-}
-
-int main()
-{
-    int choice;
-    int pipefd[2]; // File descriptors for the pipe
-    int cidpipe[2]; // File descriptors for child process communication
-
-    if (pipe(pipefd) == -1 || pipe(cidpipe) == -1)
-    {
-        fprintf(stderr, "Failed to create pipe.\n");
+    if (pipe(pipeToChild) == -1 || pipe(pipeToParent) == -1) {
+        fprintf(stderr, "Pipe failed.\n");
         return 1;
     }
 
-    pid_t pid = fork();
+    pid = fork(); // Create a child process
 
-    if (pid == 0)
-    {
-        // Child process
-        close(pipefd[0]); // Close unused read end of the main process pipe
-        close(cidpipe[1]); // Close unused write end of the child process pipe
-
-        read(cidpipe[0], &choice, sizeof(int)); // Read the choice from the main process
-
-        child_process(pipefd, choice);
+    if (pid < 0) {
+        fprintf(stderr, "Fork failed.\n");
+        return 1;
     }
-    else if (pid > 0)
-    {
-        // Main process
+
+    if (pid > 0) {
         signal(SIGUSR1, graceful_exit_handler);
         signal(SIGINT, sigint_handler);
+        // Parent process
+        close(pipeToChild[0]); // Close the unused read end of the pipe for numbers
+        close(pipeToParent[1]); // Close the unused write end of the pipe for signals
 
-        close(pipefd[1]); // Close unused write end of the main process pipe
-        close(cidpipe[0]); // Close unused read end of the child process pipe
+        while (true) {
+            printMenu();
+            scanf("%d", &number);
 
-        while (1) {
-            printf("Menu:\n");
-            printf("1. Receive airports ICOA code names and output all arrival flights and flight details.\n");
-            printf("2. Receive airports name and output the full airport schedule (departures and arrivals) ordered by time.\n");
-            printf("3. Receive list of aircraft names (icao24) and output all flights (departures and arrivals) that it has made.\n");
-            printf("4. Update the existing airports in the DB with recent data (rerun BASH script).\n");
-            printf("5. Zip the DB files.\n");
-            printf("6. Get child process's ID.\n");
-            printf("7. Graceful exit - child shall zip the DB files and terminate (think about collecting the exit status of the child process).\n");
-            printf("Enter your choice (1-7): ");
-
-            scanf("%d", &choice);
-
-            if (choice == CHILD_ID)
+            if (number < 1 || number > 7)
             {
-                write(cidpipe[1], &choice, sizeof(int));
-            }
-            else
-            {
-                write(pipefd[1], &choice, sizeof(int));
+                printf("Invalid choice, please try again.\n");
+                continue;
             }
 
-            int child_status;
-            if (waitpid(pid, &child_status, WNOHANG) > 0)
+            write(pipeToChild[1], &number, sizeof(number)); // Write the number to the pipe
+
+            if (number >= 1 && number <= 3)
             {
-                printf("Child process terminated with status: %d\n", WEXITSTATUS(child_status));
-                break;
-            }
-            
-            int result;
-            if (choice == CHILD_ID)
-            {
-                read(pipefd[0], &result, sizeof(int));
-                close(pipefd[0]);
-            }
-            else
-            {
-                read(cidpipe[1], &result, sizeof(int));
-                close(cidpipe[1]);
+                int arrSize = 0;
+                char** output = NULL;
+                output = readInput(&arrSize);
+                write(pipeToChild[1], &arrSize, sizeof(int));
+                write(pipeToChild[1], &output, sizeof(char**) * arrSize);
+
+                read(pipeToParent[0], &arrSize, sizeof(arrSize));
+                read(pipeToParent[0], &output, sizeof(char**) * arrSize);
+
+                for (int i = 0; i < arrSize; i++)
+                    printf("%s", output[i]);
+                
+                for (int i = 0; i < arrSize; i++)
+                    free(output[i]);
+                
+                free(output);
             }
 
-            printf("Received result for operation %d: %d\n", choice, result);
+            if (number == 7)
+                exit(EXIT_SUCCESS);
+
+            read(pipeToParent[0], &result, sizeof(result)); // Wait for signal from the child
+
+            printf("Received result: %d\n", result);
         }
-    }
-    else
-    {
-        // Fork failed
-        fprintf(stderr, "Failed to create child process.\n");
-        return 1;
+
+        close(pipeToChild[1]); // Close the write end of the pipe for numbers
+        close(pipeToParent[0]); // Close the read end of the pipe for signals
+
+        wait(NULL); // Wait for the child process to finish
+    } else {
+        // Child process
+        close(pipeToChild[1]); // Close the unused write end of the pipe for numbers
+        close(pipeToParent[0]); // Close the unused read end of the pipe for signals
+
+        if (first)
+        {
+            //check if zip file exists; if it does, unzip it. if it doesn't, move on.
+
+            if (1) //if file exists
+            {
+                //unzip
+                char** dirList = NULL;
+                int listSize = 0;
+                dirList = createDirList(&listSize);
+                dataBase = getDataBase(listSize, dirList);
+            }
+
+            first = false;
+        }
+
+        while (true) {
+            read(pipeToChild[0], &number, sizeof(number)); // Read the number from the pipe
+            child_process(pipeToChild, pipeToParent, number, &dataBase);
+        }
+
+        close(pipeToChild[0]); // Close the read end of the pipe for numbers
+        close(pipeToParent[1]); // Close the write end of the pipe for signals
+
+        exit(0); // Terminate the child process
     }
 
     return 0;
