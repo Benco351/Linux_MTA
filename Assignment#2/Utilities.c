@@ -2,6 +2,24 @@
 
 //////////////////////////////Data Base Functions//////////////////////////////
 
+int checkRows(FILE* file)
+{
+    printf("In checkRows!");
+    int counter = 0;
+    char input;
+
+    for (input = getc(file); input != EOF; input = getc(file))
+    {
+        if (input == '\n')
+            counter++;
+    }
+
+    fseek(file, 0, SEEK_SET);
+
+    printf("Exited checkRows with value %d", counter - 1);
+    return (counter - 1);
+}
+
 
 //free Data base
 void freeDataBase(DB* db)
@@ -21,14 +39,23 @@ void freeDataBase(DB* db)
 //build data base
 DB* getDataBase(int numOfArgs, char* airports[])
 {
-    DB* DataBase;
+    int debug = 0;
+    printf("Am in getDB\n");
+    printf("Got arguments: %d\n", numOfArgs);
+    for (int i = 0; i < numOfArgs; i++)
+        printf("%s\n", airports[i]);
+    printf("Breakpoint#%d\n", debug++);
+    
+    DB* DataBase = (DB*)malloc(sizeof(DB));
+    checkAllocation(DataBase);
     DataBase->nofAirports = numOfArgs;
     DataBase->airPortsArr = (AirPorts*)malloc(sizeof(AirPorts) * numOfArgs);
     checkAllocation(DataBase->airPortsArr);
+    printf("Breakpoint#%d\n", debug++);
    
-
     //reorder airporst names:
     DataBase->airPortsNames = reorderStringArray(numOfArgs, airports);
+    printf("Breakpoint#%d\n", debug++);
 
     //get the data base for each airport
     for (int q = 0; q < numOfArgs; q++)
@@ -40,12 +67,19 @@ DB* getDataBase(int numOfArgs, char* airports[])
         char departures[MAX_SIZE];
 
         openFilesByAirportName(DataBase->airPortsNames[q], &departuresFile, &arrivalsFile);
+        printf("Breakpoint#%d\n", debug++); //We get here!
 
-        DataBase->airPortsArr[q].SizeArivals = howManyRowsInFile(arrivalsFile);
-        DataBase->airPortsArr[q].SizeDeparturs = howManyRowsInFile(departuresFile);
+        //Option 1: call howManyRows - doesn't work
+        //Option 2: call checkRows - doesn't work
+        //Option 3: copy checkRows to here - STILL DOESN'T WORK!!
+
+        DataBase->airPortsArr[q].SizeDeparturs = checkRows(departuresFile);
+        DataBase->airPortsArr[q].SizeArivals = checkRows(arrivalsFile);
+        printf("Breakpoint#%d\n", debug++);
 
         fgets(firstRowA, MAX_SIZE, arrivalsFile);
         fgets(firstRowD, MAX_SIZE, departuresFile);
+        printf("Breakpoint#%d\n", debug++);
 
         for (int i = 0; i < DataBase->airPortsArr[q].SizeArivals; i++)
         {
@@ -60,11 +94,13 @@ DB* getDataBase(int numOfArgs, char* airports[])
             DataBase->airPortsArr[q].Departurs[i] = splitS(departures);
             DataBase->airPortsArr[q].Departurs[i].arrivalOrDeparture = DEPARTURE;
         }
+        printf("Breakpoint#%d\n", debug++);
 
         fclose(arrivalsFile);
         fclose(departuresFile);
     }
 
+    printf("Exit getDB\n");
     return DataBase;
 }
 
@@ -101,16 +137,23 @@ void quickSort(char* arr[], int low, int high)
 
 char** reorderStringArray(int numOfArgs, char* airports[])
 {
+    printf("In reorder!\n");
+    int debug = 0;
     // Create a new array to store the reordered strings
     char** reordered = (char**)malloc(numOfArgs * sizeof(char*));
     checkAllocation(reordered);
+    printf("Breakpoint#%d\n", debug++);
     for (int i = 0; i < numOfArgs; i++) {
         reordered[i] = (char*)malloc((strlen(airports[i]) + 1) * sizeof(char));
         checkAllocation(reordered[i]);
         strcpy(reordered[i], airports[i]);
+        printf("Breakpoint#%d\n", debug++);
     }
 
     quickSort(reordered, 0, numOfArgs - 1);
+    printf("Exit reorder!\n");
+    for (int i = 0; i < numOfArgs; i++)
+        printf("%s\n", reordered[i]);
 
     return reordered;
 }
@@ -118,6 +161,7 @@ char** reorderStringArray(int numOfArgs, char* airports[])
 //////////////////////////////General Functions//////////////////////////////
 void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB* dataBase)
 {
+    printf("Reached child process with choice %d\n", number);
     int arrSize = 0;
     char** output = 0;
     pid_t childId;
@@ -149,6 +193,14 @@ void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB* data
         default:
         
     }
+
+    for (int i = 0; i < arrSize; i++)
+    {
+        free(output[i]);
+    }
+
+    if (arrSize > 0)
+        free(output);
 }
 
 void graceful_exit_handler(int signum)
@@ -225,19 +277,21 @@ FlightData splitS(char* str)
 }
 
 //this function checks how many flights are in a specific file
-int howManyRowsInFile(FILE* fileName)
+int howManyRowsInFile(FILE* file)
 {
+    printf("In how many rows!");
     int counter = 0;
     char input;
 
-    for (input = getc(fileName); input != EOF; input = getc(fileName))
+    for (input = getc(file); input != EOF; input = getc(file))
     {
         if (input == '\n')
             counter++;
     }
 
-    fseek(fileName, 0, SEEK_SET);
+    fseek(file, 0, SEEK_SET);
 
+    printf("Exited numOfRows with value %d", counter - 1);
     return counter - 1;
 }
 
@@ -249,7 +303,9 @@ void checkAllocation(void* pointer)
 
 void openFilesByAirportName(char* airportName, FILE** departureFile, FILE** arrivalFile) //Opens an airport's database.
 {
-    char dir1[MAX_SIZE] = "flightsDB/";
+    printf("In openfiles!\n");
+    int debug = 0;
+    char dir1[MAX_SIZE] = "../flightsDB/";
     char dir2[MAX_SIZE];
     strcat(dir1, airportName);
     strcat(dir1, "/");
@@ -259,8 +315,12 @@ void openFilesByAirportName(char* airportName, FILE** departureFile, FILE** arri
     strcat(dir1, ".dpt");
     strcat(dir2, ".arv");
 
+    printf("Breakpoint#%d\n", debug++);
+    printf("%s\n", dir1);
+    printf("%s\n", dir1);
     *departureFile = fopen(dir1, "r");
     *arrivalFile = fopen(dir2, "r");
+    printf("Exit open file\n");
 }
 
 void loadDatabase(int numOfArgs, char* airports[]) //Loads database according to arguments.
@@ -309,18 +369,23 @@ char* unix_time_to_date(const char* timestamp_str) {
 
 char** createDirList(int* size)
 {
+    printf("I'm in DirList\n");
+    int debug = 0;
     char** output = NULL;
     int phySize = 1, logSize = 0;
 
     output = (char**)malloc(sizeof(char*) * phySize);
     checkAllocation(output);
+    printf("Breakpoint#%d\n", debug++);
 
-    DIR* directory = opendir("flightsDB/");
+    DIR* directory = opendir("../flightsDB/");
     checkAllocation(directory);
+    printf("Breakpoint#%d\n", debug++);
 
     struct dirent* entry;
     while ((entry = readdir(directory)) != NULL)
     {
+        printf("Breakpoint#%d\n", debug++);
         // Exclude hidden files/directories that start with a dot
         if (entry->d_name[0] != '.' && strlen(entry->d_name) == NAME_LEN)
         {
@@ -339,12 +404,15 @@ char** createDirList(int* size)
             logSize++;
         }
     }
+    printf("Breakpoint#%d\n", debug++);
 
     output = (char**)realloc(output, logSize * sizeof(char*));
     checkAllocation(output);
     *size = logSize;
+    printf("Breakpoint#%d\n", debug++);
 
     closedir(directory);
+    printf("I exit DirList\n");
     return output;
 }
 
@@ -360,8 +428,13 @@ char** readInput(int* size)
 
     printf("Please enter desired input seperated by a single comma (,).\n"
            "For example: LLBG,LLTK\n\n");
-
+    
     char input = getchar();
+
+    if (input == '\n') //case of previous buffer.
+    {
+        input = getchar();
+    }
 
     while (input != '\n')
     {
@@ -418,7 +491,7 @@ char** readInput(int* size)
         currentStringLogSize++;
         input = getchar();
 
-        if (input == ',')
+        if (input == ',' || input == '\n')
         {
             if (currentStringLogSize == currentStringPhySize)
             {
@@ -438,7 +511,11 @@ char** readInput(int* size)
             arrLogSize++;
             currentStringLogSize = 0;
             currentStringPhySize = 0;
-            input = getchar();
+
+            if (input == ',')
+            {
+                input = getchar();
+            }
             continue;
         }
     }
@@ -456,7 +533,8 @@ char** readInput(int* size)
 char** printFlightsToAirport(char* airportName, DB db, int pipeToParent[2], int* logSize) //Prints all flights details to airportName.
 {
     char** output = (char**)malloc(sizeof(char*) * MAX_SIZE);
-    int phySize = MAX_SIZE, (*logSize) = 0;
+    int phySize = MAX_SIZE;
+    *logSize = 0;
     int currStringSize = 0;
     int j = quickSearch(db.airPortsNames, db.nofAirports, airportName);
 

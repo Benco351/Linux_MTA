@@ -23,9 +23,6 @@ int main() {
     if (pid > 0) {
         signal(SIGUSR1, graceful_exit_handler);
         signal(SIGINT, sigint_handler);
-        // Parent process
-        close(pipeToChild[0]); // Close the unused read end of the pipe for numbers
-        close(pipeToParent[1]); // Close the unused write end of the pipe for signals
 
         while (true) {
             printMenu();
@@ -65,6 +62,7 @@ int main() {
             read(pipeToParent[0], &result, sizeof(result)); // Wait for signal from the child
 
             printf("Received result: %d\n", result);
+            
         }
 
         close(pipeToChild[1]); // Close the write end of the pipe for numbers
@@ -73,15 +71,15 @@ int main() {
         wait(NULL); // Wait for the child process to finish
     } else {
         // Child process
-        close(pipeToChild[1]); // Close the unused write end of the pipe for numbers
-        close(pipeToParent[0]); // Close the unused read end of the pipe for signals
-
+        printf("1\n");
         if (first)
         {
+            printf("2\n");
             //check if zip file exists; if it does, unzip it. if it doesn't, move on.
 
-            if (1) //if file exists
+            if (true) //if file exists
             {
+                printf("3\n");
                 //unzip
                 char** dirList = NULL;
                 int listSize = 0;
@@ -94,7 +92,7 @@ int main() {
 
         while (true) {
             read(pipeToChild[0], &number, sizeof(number)); // Read the number from the pipe
-            child_process(pipeToChild, pipeToParent, number, &dataBase);
+            child_process(pipeToChild, pipeToParent, number, dataBase);
         }
 
         close(pipeToChild[0]); // Close the read end of the pipe for numbers

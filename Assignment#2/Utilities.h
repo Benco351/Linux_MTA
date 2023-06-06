@@ -52,6 +52,7 @@
     int partition(char* arr[], int low, int high);
     void quickSort(char* arr[], int low, int high);
     char** reorderStringArray(int numOfArgs, char* airports[]);
+    int checkRows(FILE* file);
     //////////////////////////////General Functions//////////////////////////////
     void graceful_exit_handler(int signum);
     void sigint_handler(int signum);
