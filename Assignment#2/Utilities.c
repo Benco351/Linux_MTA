@@ -1,7 +1,7 @@
 #include "Utilities.h"
 
 //////////////////////////////Data Base Functions//////////////////////////////
-
+//The equivalent of howManyRows.
 int checkRows(FILE* file)
 {
     printf("In checkRows!\n");
@@ -19,7 +19,6 @@ int checkRows(FILE* file)
     printf("Exited checkRows with value %d\n", counter - 1);
     return (counter - 1);
 }
-
 
 //free Data base
 void freeDataBase(DB* db)
@@ -170,8 +169,10 @@ char** reorderStringArray(int numOfArgs, char* airports[])
 //////////////////////////////General Functions//////////////////////////////
 void ReadOrWriteToPipe(char** output, int O_size, int pipe[2], bool SIG)
 {
+    printf("I'm writing to the pipe!\n");
     int currentStrSize = 0;
-    if (SIG == 0)//read
+
+    if (SIG == READ)//read
     {
         for (int i = 0; i < O_size; i++)
         {
@@ -190,10 +191,11 @@ void ReadOrWriteToPipe(char** output, int O_size, int pipe[2], bool SIG)
             write(pipe[1], &currentStrSize, sizeof(int));
             write(pipe[1], output[i], currentStrSize);
             output[i][currentStrSize] = '\0';
+            printf("%s\n", output[i]);
         }
     }
-
 }
+
 void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB* dataBase)
 {
     printf("Reached child process with choice %d\n", number);
@@ -208,15 +210,7 @@ void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB* data
         output = (char**)malloc(sizeof(char*) * arrSize);
         checkAllocation(output);
 
-        for (int i = 0; i < arrSize; i++)
-        {
-            read(pipeToChild[0], &currentStrSize, sizeof(int));
-            printf("Got string size: %d\n", currentStrSize);
-            output[i] = (char*)malloc(sizeof(char) * (currentStrSize + 1));
-            checkAllocation(output[i]);
-            read(pipeToChild[0], output[i], currentStrSize);
-            output[i][currentStrSize] = '\0';
-        }
+        ReadOrWriteToPipe(output, arrSize, pipeToChild, READ);
 
         printf("Got output arr: %s\n", output[0]);
     }
@@ -272,7 +266,6 @@ void sigint_handler(int signum)
     }
 }
 
-
 void printMenu()
 {
     printf("Menu:\n");
@@ -308,7 +301,6 @@ int quickSearch(char* arr[], int size, char* target) {
 
     return -1;  // Target not found
 }
-
 
 //this function gets a string
 //splits the string into type FlightData and returns it
@@ -584,6 +576,8 @@ char** readInput(int* size)
 //////////////////////////////Q1 Functions//////////////////////////////
 char** printFlightsToAirport(char* airportName, DB db, int pipeToParent[2], int* logSize) //Prints all flights details to airportName.
 {
+    printf("I'm now in printFlights!\n");
+    int debug = 0;
     char** output = (char**)malloc(sizeof(char*) * MAX_SIZE);
     int phySize = MAX_SIZE;
     *logSize = 0;
@@ -653,29 +647,32 @@ char* printFlightsData(FlightData object)
 
 void runQ1(char* parameters[], int numOfParameters, DB db, int pipeToParent[2])
 {
+    printf("Im in Q1!\n");
+    printf("Our parameters: %d\n", numOfParameters);
+    printf("%s\n", parameters[0]);
+    int debug = 0;
     char** buffer = NULL, **output = NULL;
     int bufferLogSize = 0, bufferPhySize = MAX_SIZE;
     int outputLogSize = 0;
     buffer = (char**)malloc(sizeof(char*) * MAX_SIZE);
     checkAllocation(buffer);
 
-    for (int i = 1; i < numOfParameters; i++)
-    {
+    for (int i = 0; i < numOfParameters; i++) {
+        printf("I'm in the loop\n");
         output = printFlightsToAirport(parameters[i], db, pipeToParent, &outputLogSize);
 
-        while (bufferPhySize - bufferLogSize < outputLogSize)
-        {
+        while (bufferPhySize - bufferLogSize < outputLogSize) {
             bufferPhySize = 2 * (outputLogSize - (bufferPhySize - bufferLogSize));
-            buffer = (char**)realloc(buffer, sizeof(char*) * bufferPhySize);
+            buffer = (char **) realloc(buffer, sizeof(char *) * bufferPhySize);
             checkAllocation(buffer);
         }
 
-        for (int i = 0; i < outputLogSize; i++)
-        {
-            output[bufferLogSize] = output[i];
+        for (int i = 0; i < outputLogSize; i++) {
+            buffer[bufferLogSize] = output[i];
             bufferLogSize++;
         }
     }
+    printf("Debug#%d\n", debug++);
 
     if (bufferLogSize < bufferPhySize)
     {
@@ -684,7 +681,15 @@ void runQ1(char* parameters[], int numOfParameters, DB db, int pipeToParent[2])
     }
 
     write(pipeToParent[1], &bufferLogSize, sizeof(int));
-    write(pipeToParent[1], &buffer, sizeof(char**) * bufferLogSize);
+    printf("I've written size: %d\n", bufferLogSize);
+    ReadOrWriteToPipe(buffer, bufferLogSize, pipeToParent, WRITE);
+
+    for (int i = 0; i < bufferLogSize; i++)
+    {
+        free(buffer[i]);
+    }
+
+    free(buffer);
 }
 //////////////////////////////Q2 Functions//////////////////////////////
 //this function gets Airport name

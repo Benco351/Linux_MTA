@@ -38,28 +38,32 @@ int main() {
 
             if (number >= 1 && number <= 3)
             {
-                int arrSize = 0, currentStringSize = 0;
-                char** output = NULL;
-                output = readInput(&arrSize);
-                write(pipeToChild[1], &arrSize, sizeof(int));
+                int inputArrSize = 0, outputArrSize = 0, currentStringSize = 0;
+                char** output = NULL, **input = NULL;
+                input = readInput(&inputArrSize);
+                write(pipeToChild[1], &inputArrSize, sizeof(int));
 
-                for (int i = 0; i < arrSize; i++)
+                ReadOrWriteToPipe(input, inputArrSize, pipeToChild, WRITE);
+                read(pipeToParent[0], &outputArrSize, sizeof(int));
+                output = (char**)malloc(sizeof(char*) * outputArrSize);
+                checkAllocation(output);
+                ReadOrWriteToPipe(output, outputArrSize, pipeToParent, READ);
+
+                for (int i = 0; i < outputArrSize; i++)
                 {
-                    currentStringSize = strlen(output[i]);
-                    write(pipeToChild[1], &currentStringSize, sizeof(int));
-                    write(pipeToChild[1], output[i], strlen(output[i]));
+                    printf("%s", output[i]);
+                    free(output[i]);
                 }
 
-                read(pipeToParent[0], &arrSize, sizeof(arrSize));
-                read(pipeToParent[0], &output, sizeof(char**) * arrSize);
-
-                for (int i = 0; i < arrSize; i++)
-                    printf("%s", output[i]);
-
-                for (int i = 0; i < arrSize; i++)
-                    free(output[i]);
-
                 free(output);
+
+                for (int i = 0; i < inputArrSize; i++)
+                {
+                    free(input[i]);
+                }
+
+                free(input);
+
             }
 
             if (number == 7)
@@ -68,14 +72,13 @@ int main() {
             read(pipeToParent[0], &result, sizeof(result)); // Wait for signal from the child
 
             printf("Received result: %d\n", result);
-
         }
 
         close(pipeToChild[1]); // Close the write end of the pipe for numbers
         close(pipeToParent[0]); // Close the read end of the pipe for signals
 
         wait(NULL); // Wait for the child process to finish
-    } else {
+    } else if (pid == 0) {
         // Child process
         printf("1\n");
         if (first)
