@@ -18,6 +18,8 @@
 #define ARRIVAL 0
 #define DEPARTURE 1
 #define NAME_LEN 4
+#define READ 0
+#define WRITE 1
 
 typedef struct flightData
 {
@@ -54,6 +56,7 @@ void quickSort(char* arr[], int low, int high);
 char** reorderStringArray(int numOfArgs, char* airports[]);
 int checkRows(FILE* file);
 //////////////////////////////General Functions//////////////////////////////
+void ReadOrWriteToPipe(char** output, int O_size, int pipe[2], bool SIG);
 void graceful_exit_handler(int signum);
 void sigint_handler(int signum);
 void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB* dataBase);
