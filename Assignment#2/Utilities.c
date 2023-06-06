@@ -168,6 +168,32 @@ char** reorderStringArray(int numOfArgs, char* airports[])
 }
 
 //////////////////////////////General Functions//////////////////////////////
+void ReadOrWriteToPipe(char** output, int O_size, int pipe[2], bool SIG)
+{
+    int currentStrSize = 0;
+    if (SIG == 0)//read
+    {
+        for (int i = 0; i < O_size; i++)
+        {
+            read(pipe[0], &currentStrSize, sizeof(int));
+            output[i] = (char*)malloc(sizeof(char) * (currentStrSize + 1));
+            checkAllocation(output[i]);
+            read(pipe[0], output[i], currentStrSize);
+            output[i][currentStrSize] = '\0';
+        }
+    }
+    else // write
+    {
+        for (int i = 0; i < O_size; i++)
+        {
+            currentStrSize = strlen(output[i]);
+            write(pipe[1], &currentStrSize, sizeof(int));
+            write(pipe[1], output[i], currentStrSize);
+            output[i][currentStrSize] = '\0';
+        }
+    }
+
+}
 void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB* dataBase)
 {
     printf("Reached child process with choice %d\n", number);
