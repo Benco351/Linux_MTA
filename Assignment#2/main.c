@@ -38,21 +38,27 @@ int main() {
 
             if (number >= 1 && number <= 3)
             {
-                int arrSize = 0;
+                int arrSize = 0, currentStringSize = 0;
                 char** output = NULL;
                 output = readInput(&arrSize);
                 write(pipeToChild[1], &arrSize, sizeof(int));
-                write(pipeToChild[1], &output, sizeof(char**) * arrSize);
+
+                for (int i = 0; i < arrSize; i++)
+                {
+                    currentStringSize = strlen(output[i]);
+                    write(pipeToChild[1], &currentStringSize, sizeof(int));
+                    write(pipeToChild[1], output[i], strlen(output[i]));
+                }
 
                 read(pipeToParent[0], &arrSize, sizeof(arrSize));
                 read(pipeToParent[0], &output, sizeof(char**) * arrSize);
 
                 for (int i = 0; i < arrSize; i++)
                     printf("%s", output[i]);
-                
+
                 for (int i = 0; i < arrSize; i++)
                     free(output[i]);
-                
+
                 free(output);
             }
 
@@ -62,7 +68,7 @@ int main() {
             read(pipeToParent[0], &result, sizeof(result)); // Wait for signal from the child
 
             printf("Received result: %d\n", result);
-            
+
         }
 
         close(pipeToChild[1]); // Close the write end of the pipe for numbers
@@ -85,13 +91,16 @@ int main() {
                 int listSize = 0;
                 dirList = createDirList(&listSize);
                 dataBase = getDataBase(listSize, dirList);
+                printf("Im here?\n");
             }
 
             first = false;
         }
 
         while (true) {
+            printf("Or am I here!\n");
             read(pipeToChild[0], &number, sizeof(number)); // Read the number from the pipe
+            printf("Did I read the pipe?\n");
             child_process(pipeToChild, pipeToParent, number, dataBase);
         }
 

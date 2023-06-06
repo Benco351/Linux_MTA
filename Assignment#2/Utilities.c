@@ -4,7 +4,7 @@
 
 int checkRows(FILE* file)
 {
-    printf("In checkRows!");
+    printf("In checkRows!\n");
     int counter = 0;
     char input;
 
@@ -16,7 +16,7 @@ int checkRows(FILE* file)
 
     fseek(file, 0, SEEK_SET);
 
-    printf("Exited checkRows with value %d", counter - 1);
+    printf("Exited checkRows with value %d\n", counter - 1);
     return (counter - 1);
 }
 
@@ -31,9 +31,11 @@ void freeDataBase(DB* db)
 
     for (int i = 0; i < db->nofAirports; i++)
     {
-            free(db->airPortsArr[i].arivals);
-            free(db->airPortsArr[i].Departurs);
+        free(db->airPortsArr[i].arivals);
+        free(db->airPortsArr[i].Departurs);
     }
+
+    free(db);
 }
 
 //build data base
@@ -45,21 +47,21 @@ DB* getDataBase(int numOfArgs, char* airports[])
     for (int i = 0; i < numOfArgs; i++)
         printf("%s\n", airports[i]);
     printf("Breakpoint#%d\n", debug++);
-    
+
     DB* DataBase = (DB*)malloc(sizeof(DB));
     checkAllocation(DataBase);
     DataBase->nofAirports = numOfArgs;
     DataBase->airPortsArr = (AirPorts*)malloc(sizeof(AirPorts) * numOfArgs);
     checkAllocation(DataBase->airPortsArr);
     printf("Breakpoint#%d\n", debug++);
-   
+
     //reorder airporst names:
     DataBase->airPortsNames = reorderStringArray(numOfArgs, airports);
     printf("Breakpoint#%d\n", debug++);
 
     //get the data base for each airport
     for (int q = 0; q < numOfArgs; q++)
-    {   
+    {
         FILE* arrivalsFile, * departuresFile;
         char firstRowA[MAX_SIZE];
         char firstRowD[MAX_SIZE];
@@ -80,6 +82,13 @@ DB* getDataBase(int numOfArgs, char* airports[])
         fgets(firstRowA, MAX_SIZE, arrivalsFile);
         fgets(firstRowD, MAX_SIZE, departuresFile);
         printf("Breakpoint#%d\n", debug++);
+
+        DataBase->airPortsArr[q].arivals = (FlightData*)malloc(sizeof(FlightData) *
+                (DataBase->airPortsArr[q].SizeArivals));
+        DataBase->airPortsArr[q].Departurs = (FlightData*)malloc(sizeof(FlightData) *
+                (DataBase->airPortsArr[q].SizeDeparturs));
+        checkAllocation(DataBase->airPortsArr[q].arivals);
+        checkAllocation(DataBase->airPortsArr[q].Departurs);
 
         for (int i = 0; i < DataBase->airPortsArr[q].SizeArivals; i++)
         {
@@ -162,14 +171,28 @@ char** reorderStringArray(int numOfArgs, char* airports[])
 void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB* dataBase)
 {
     printf("Reached child process with choice %d\n", number);
-    int arrSize = 0;
+    int arrSize = 0, currentStrSize = 0;
     char** output = 0;
     pid_t childId;
 
     if (number >= 1 && number <= 3)
     {
         read(pipeToChild[0], &arrSize, sizeof(int));
-        read(pipeToChild[0], &output, sizeof(char**) * arrSize);
+        printf("Got arrSize: %d\n", arrSize);
+        output = (char**)malloc(sizeof(char*) * arrSize);
+        checkAllocation(output);
+
+        for (int i = 0; i < arrSize; i++)
+        {
+            read(pipeToChild[0], &currentStrSize, sizeof(int));
+            printf("Got string size: %d\n", currentStrSize);
+            output[i] = (char*)malloc(sizeof(char) * (currentStrSize + 1));
+            checkAllocation(output[i]);
+            read(pipeToChild[0], output[i], currentStrSize);
+            output[i][currentStrSize] = '\0';
+        }
+
+        printf("Got output arr: %s\n", output[0]);
     }
 
     switch(number)
@@ -191,7 +214,8 @@ void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB* data
         case 7:
 
         default:
-        
+            break;
+
     }
 
     for (int i = 0; i < arrSize; i++)
@@ -264,6 +288,7 @@ int quickSearch(char* arr[], int size, char* target) {
 //splits the string into type FlightData and returns it
 FlightData splitS(char* str)
 {
+    printf("In splitS!\n");
     FlightData FD;
 
     strcpy(FD.icao24, strtok(str, ","));
@@ -273,6 +298,7 @@ FlightData splitS(char* str)
     strcpy(FD.arrivalAirPort, strtok(NULL, ","));
     strcpy(FD.flightNumber, strtok(NULL, ",\n"));
 
+    printf("Exiting splitS!\n");
     return FD;
 }
 
@@ -328,8 +354,8 @@ void loadDatabase(int numOfArgs, char* airports[]) //Loads database according to
     char command[MAX_SIZE] = "bash flightScanner.sh";
     for (int i = 0; i < numOfArgs; i++)
     {
-       strcat(command," ");
-       strcat(command,airports[i]);
+        strcat(command," ");
+        strcat(command,airports[i]);
     }
 
     system(command);
@@ -428,7 +454,7 @@ char** readInput(int* size)
 
     printf("Please enter desired input seperated by a single comma (,).\n"
            "For example: LLBG,LLTK\n\n");
-    
+
     char input = getchar();
 
     if (input == '\n') //case of previous buffer.
@@ -548,11 +574,11 @@ char** printFlightsToAirport(char* airportName, DB db, int pipeToParent[2], int*
         }
 
         currStringSize = snprintf(NULL, 0, "-------------------------%s-------------------------\n",
-         airportName);
+                                  airportName);
         output[*logSize] = (char*)malloc(currStringSize + 1);
         checkAllocation(output);
         snprintf(output[*logSize], currStringSize + 1, "-------------------------%s-------------------------\n",
-         airportName);
+                 airportName);
         (*logSize)++;
         for (int i = 0; i < db.airPortsArr[j].SizeArivals; i++)
         {
@@ -585,10 +611,10 @@ char* printFlightsData(FlightData object)
     checkAllocation(output);
     int logSize = 0;
     logSize = snprintf(NULL, 0, "Flight #%-7s arriving from %s, tookoff at %s landed at %s\n",
-           object.flightNumber, object.departureAirPort, object.firstSeen, object.lastSeen);
+                       object.flightNumber, object.departureAirPort, object.firstSeen, object.lastSeen);
     snprintf(output, logSize + 1, "Flight #%-7s arriving from %s, tookoff at %s landed at %s\n",
-           object.flightNumber, object.departureAirPort, object.firstSeen, object.lastSeen);
-    
+             object.flightNumber, object.departureAirPort, object.firstSeen, object.lastSeen);
+
     if (logSize < MAX_SIZE)
     {
         output = (char*)realloc(output, sizeof(char) * (logSize + 1));
@@ -715,7 +741,7 @@ void printFullSchedule(FlightData object)
 
 void runQ2(char* parameters[], int numOfParameters, DB db, int pipeToParent[2])
 {
-        for (int i = 1; i < numOfParameters; i++)
+    for (int i = 1; i < numOfParameters; i++)
     {
         printAirportSchedule(parameters[i], db, pipeToParent);
     }
