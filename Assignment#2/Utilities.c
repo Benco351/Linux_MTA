@@ -157,8 +157,8 @@ char** reorderStringArray(int numOfArgs, char* airports[])
         strcpy(reordered[i], airports[i]);
         printf("Breakpoint#%d\n", debug++);
     }
-
-    quickSort(reordered, 0, numOfArgs - 1);
+    qsort(reordered, numOfArgs, sizeof(char*), compareStrings);
+    //quickSort(reordered, 0, numOfArgs - 1);
     printf("Exit reorder!\n");
     for (int i = 0; i < numOfArgs; i++)
         printf("%s\n", reordered[i]);
@@ -167,6 +167,13 @@ char** reorderStringArray(int numOfArgs, char* airports[])
 }
 
 //////////////////////////////General Functions//////////////////////////////
+// Comparison function for qsort
+int compareStrings(const void* a, const void* b) {
+    const char** str1 = (const char**)a;
+    const char** str2 = (const char**)b;
+    return strcmp(*str1, *str2);
+}
+
 void ReadOrWriteToPipe(char** output, int O_size, int pipe[2], bool SIG)
 {
     printf("I'm writing to the pipe!\n");
@@ -191,7 +198,6 @@ void ReadOrWriteToPipe(char** output, int O_size, int pipe[2], bool SIG)
             write(pipe[1], &currentStrSize, sizeof(int));
             write(pipe[1], output[i], currentStrSize);
             output[i][currentStrSize] = '\0';
-            printf("%s\n", output[i]);
         }
     }
 }
@@ -281,6 +287,10 @@ void printMenu()
 
 //this is a search function to find the needed airport
 int quickSearch(char* arr[], int size, char* target) {
+    printf("Were in qSearch!\n");
+    printf("Parameters: %d\n", size);
+    for (int i = 0; i < size; i++)
+        printf("%s\n", arr[i]);
     int left = 0;
     int right = size - 1;
 
