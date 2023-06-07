@@ -20,9 +20,6 @@
 #define NAME_LEN 4
 #define READ 0
 #define WRITE 1
-#define DB_EXISTS 1
-#define DB_DOES_NOT_EXISTS 0
-#define GENERATE_DB 8
 #define MISSION1 1
 #define MISSION2 2
 #define MISSION3 3
