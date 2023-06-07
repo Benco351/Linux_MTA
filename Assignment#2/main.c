@@ -6,7 +6,7 @@ int main() {
     int number;
     pid_t pid;
     DB* dataBase;
-    bool firstChildIteration = true, firstParentIteration = true;
+    bool firstChildIteration = true;
 
     if (pipe(pipeToChild) == -1 || pipe(pipeToParent) == -1) {
         fprintf(stderr, "Pipe failed.\n");
@@ -25,12 +25,6 @@ int main() {
         signal(SIGINT, sigint_handler);
 
         while (true) {
-            int doesDBexist;
-            if (firstParentIteration)
-            {
-                read(pipeToParent[0], &doesDBexist, sizeof(int));
-                firstParentIteration = false;
-            }
             printMenu();
             scanf("%d", &number);
 
@@ -40,28 +34,13 @@ int main() {
                 continue;
             }
 
-            if (number > 3)
-            {
-                write(pipeToChild[1], &number, sizeof(number)); // Write the number to the pipe
-            }
+            write(pipeToChild[1], &number, sizeof(number)); // Write the number to the pipe
 
             if (number >= 1 && number <= 3)
             {
                 int inputArrSize = 0, outputArrSize = 0;
                 char** output = NULL, **input = NULL;
                 input = readInput(&inputArrSize, number);
-
-                if (doesDBexist == DB_DOES_NOT_EXISTS)
-                {
-                    int generate = GENERATE_DB;
-                    printf("Generating Database....\n");
-                    write(pipeToChild[1], &generate, sizeof(generate));
-                    write(pipeToChild[1], &inputArrSize, sizeof(int));
-                    ReadOrWriteToPipe(input, inputArrSize, pipeToChild, WRITE);
-                    read(pipeToParent[0], &doesDBexist, sizeof(int));
-                }
-
-                write(pipeToChild[1], &number, sizeof(number));
                 write(pipeToChild[1], &inputArrSize, sizeof(int));
                 ReadOrWriteToPipe(input, inputArrSize, pipeToChild, WRITE);
                 read(pipeToParent[0], &outputArrSize, sizeof(int));
@@ -121,7 +100,6 @@ int main() {
         if (firstChildIteration)
         {
             bool zipExists = doesZipExists();
-            int checkResult = 0;
 
             if (zipExists)
             {
@@ -130,16 +108,9 @@ int main() {
                 int listSize = 0;
                 dirList = createDirList(&listSize);
                 dataBase = getDataBase(listSize, dirList);
-                checkResult = DB_EXISTS;
-            }
-
-            else if (!zipExists)
-            {
-                checkResult = DB_DOES_NOT_EXISTS;
             }
 
             firstChildIteration = false;
-            write(pipeToParent[1], &checkResult, sizeof(checkResult));
         }
 
         while (true)
