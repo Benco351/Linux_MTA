@@ -181,7 +181,7 @@ void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB* data
     switch(number)
     {
         case 4:
-            reRunScript();
+            reRunScript(dataBase);
             break;
         case 5:
             //zip DB
@@ -763,8 +763,11 @@ void findAirCrafts(char** aircraft, int nofAirCrafts, DB* db, char*** output, in
     }
 }
 //////////////////////////////Q4 Functions//////////////////////////////
-void reRunScript()
+void reRunScript(DB* db)
 {
+    char** APnames = db->airPortsNames;
+    int size = db->nofAirports;
+    freeDataBase(db);
     int sizeOfDirList = 0;
     char** dirList = createDirList(&sizeOfDirList);
     loadDatabase(sizeOfDirList,dirList);
@@ -773,4 +776,5 @@ void reRunScript()
         free(dirList[i]);
     }
     free(dirList);
+    db = getDataBase(size, APnames);
 }
