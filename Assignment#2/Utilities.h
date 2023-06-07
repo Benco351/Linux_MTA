@@ -82,6 +82,6 @@ char* printFlightsData(FlightData object, int mission);
 void runRequestOnDB(char* parameters[], int numOfParameters, DB* db, int pipeToParent[2], int mission);
 char* compareFlights(DB* db, int *a, int *d, int airport);
 void findAirCrafts(char** aircraft, int nofAirCrafts, DB* db, char*** output, int* logSize, int* phySize);
-void reRunScript();
+void reRunScript(DB* db);
 
 #endif
