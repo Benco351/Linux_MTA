@@ -68,10 +68,6 @@ int main() {
 
             if (number == 7)
                 exit(EXIT_SUCCESS);
-
-            read(pipeToParent[0], &result, sizeof(result)); // Wait for signal from the child
-
-            printf("Received result: %d\n", result);
         }
 
         close(pipeToChild[1]); // Close the write end of the pipe for numbers
