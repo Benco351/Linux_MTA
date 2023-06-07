@@ -56,6 +56,7 @@ void quickSort(char* arr[], int low, int high);
 char** reorderStringArray(int numOfArgs, char* airports[]);
 int checkRows(FILE* file);
 //////////////////////////////General Functions//////////////////////////////
+int compareStrings(const void* a, const void* b);
 void ReadOrWriteToPipe(char** output, int O_size, int pipe[2], bool SIG);
 void graceful_exit_handler(int signum);
 void sigint_handler(int signum);
