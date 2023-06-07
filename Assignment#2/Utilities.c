@@ -169,7 +169,7 @@ void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB* data
     char** output = NULL;
     pid_t childId;
 
-    if (number >= 1 && number <= 3 || number == GENERATE_DB)
+    if (number >= 1 && number <= 3)
     {
         read(pipeToChild[0], &arrSize, sizeof(int));
         output = (char**)malloc(sizeof(char*) * arrSize);
@@ -196,9 +196,6 @@ void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB* data
             write(pipeToParent[1], &exitCode, sizeof(exitCode));
             freeDataBase(dataBase);
             exit(EXIT_SUCCESS);
-        case GENERATE_DB:
-            loadDatabase(arrSize, output);
-            break;
         default:
             break;
     }
