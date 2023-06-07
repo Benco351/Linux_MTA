@@ -168,6 +168,7 @@ void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB* data
     int arrSize = 0, exitCode;
     char** output = NULL;
     pid_t childId;
+   
 
     if (number >= 1 && number <= 3)
     {
@@ -185,6 +186,17 @@ void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB* data
             break;
         case 5:
             //zip DB
+             char cwd[PATH_MAX];
+            if (getcwd(cwd, sizeof(cwd)) != NULL) {
+                int size = strlen(cwd);
+                cwd[size - 6] ='\0';
+                char tmp[PATH_MAX];
+                strcpy(tmp,cwd);
+                strcat(tmp,"/flightsDB.zip");
+                strcat(cwd,"/flightsDB");
+                int result = zipFolder(cwd, tmp);
+                write(pipeToParent[1],&result,sizeof(result));      
+            }
             break;
         case 6:
             childId = getpid();
@@ -192,10 +204,23 @@ void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB* data
             break;
         case 7:
             //zip DB.
-            exitCode = EXIT_SUCCESS;
-            write(pipeToParent[1], &exitCode, sizeof(exitCode));
-            freeDataBase(dataBase);
-            exit(EXIT_SUCCESS);
+            {
+                char cwd[PATH_MAX];
+                if (getcwd(cwd, sizeof(cwd)) != NULL) {
+                    int size = strlen(cwd);
+                    cwd[size - 6] ='\0';
+                    char tmp[PATH_MAX];
+                    strcpy(tmp,cwd);
+                    strcat(tmp,"/flightsDB.zip");
+                    strcat(cwd,"/flightsDB");
+                    int result = zipFolder(cwd, tmp);
+                    write(pipeToParent[1],&result,sizeof(result));      
+                }
+                exitCode = EXIT_SUCCESS;
+                write(pipeToParent[1], &exitCode, sizeof(exitCode));
+                freeDataBase(dataBase);
+                exit(EXIT_SUCCESS);
+            }
         default:
             break;
     }
@@ -774,4 +799,137 @@ void reRunScript(DB* db)
     }
     free(dirList);
     db = getDataBase(size, APnames);
+}
+
+/////////////////////////////////////ZIP Functions//////////////////////////////////
+
+void addFileToZip(struct zip* archive, const char* filePath, const char* entryName) {
+    struct zip_source* source = zip_source_file_create(filePath, 0, -1, 0);
+    if (!source) {
+        return;
+    } 
+
+    int result = zip_add(archive, entryName, source);
+    if (result < 0) {
+      zip_source_free(source);
+    }
+
+}
+
+void addFolderToZip(struct zip* archive, const char* folderPath, const char* baseDir) {
+    DIR* dir;
+    struct dirent* entry;
+    char filePath[PATH_MAX];
+
+    dir = opendir(folderPath);
+    if (!dir) {
+        return;
+    }
+
+    while ((entry = readdir(dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+            continue;
+
+        snprintf(filePath, sizeof(filePath), "%s/%s", folderPath, entry->d_name);
+
+        struct stat fileStat;
+        if (stat(filePath, &fileStat) == 0) {
+            if (S_ISREG(fileStat.st_mode)) {
+                char entryName[PATH_MAX];
+                snprintf(entryName, sizeof(entryName), "%s%s%s", baseDir, (baseDir[strlen(baseDir) - 1] == '/') ? "" : "/", entry->d_name);
+                addFileToZip(archive, filePath, entryName);
+            } else if (S_ISDIR(fileStat.st_mode)) {
+                char subFolderBaseDir[PATH_MAX];
+                snprintf(subFolderBaseDir, sizeof(subFolderBaseDir), "%s%s%s", baseDir, (baseDir[strlen(baseDir) - 1] == '/') ? "" : "/", entry->d_name);
+                addFolderToZip(archive, filePath, subFolderBaseDir);
+            }
+        }
+    }
+
+    closedir(dir);
+}
+
+int zipFolder(const char* folderPath, const char* zipFilePath) {
+    // if(access(zipFilePath,F_OK != -1))
+    // {
+    //     if(remove(zipFilePath) != 0)
+    //     {
+    //         return 1;
+    //     }
+    // }
+    struct zip* archive = zip_open(zipFilePath, ZIP_CREATE | ZIP_TRUNCATE, NULL);
+    if (!archive) {
+        return 1;
+    }
+    addFolderToZip(archive, folderPath, "");
+    if (zip_close(archive) < 0) {
+        return 1;
+    }
+    return 0;
+}
+
+
+//-----------------------------------
+//UNZIP FUNCTION
+
+//------------------------------------
+int unzipFolder(const char* zipFilePath, const char* destinationFolder) {
+    struct zip* archive = zip_open(zipFilePath, 0, NULL);
+    if (!archive) {
+        printf("Failed to open zip file '%s'\n", zipFilePath);
+        return 1;
+    }
+
+    int numEntries = zip_get_num_entries(archive, 0);
+    for (int i = 0; i < numEntries; i++) {
+        struct zip_stat entryStat;
+        if (zip_stat_index(archive, i, 0, &entryStat) == 0) {
+            if (entryStat.name[strlen(entryStat.name) - 1] == '/') {
+                // Skip directories
+                continue;
+            }
+
+            char entryName[PATH_MAX];
+            snprintf(entryName, sizeof(entryName), "%s%s%s", destinationFolder, (destinationFolder[strlen(destinationFolder) - 1] == '/') ? "" : "/", entryStat.name);
+
+            struct zip_file* file = zip_fopen_index(archive, i, 0);
+            if (!file) {
+                printf("Failed to open file '%s' in zip archive\n", entryStat.name);
+                continue;
+            }
+
+            // Create directory if it doesn't exist
+            char dirName[PATH_MAX];
+            strncpy(dirName, entryName, sizeof(dirName));
+            char* lastSlash = strrchr(dirName, '/');
+            if (lastSlash) {
+                *lastSlash = '\0';
+                mkdir(dirName, 0777);
+            }
+
+            FILE* outputFile = fopen(entryName, "wb");
+            if (!outputFile) {
+                printf("Failed to create file '%s'\n", entryName);
+                zip_fclose(file);
+                continue;
+            }
+
+            char buffer[4096];
+            zip_int64_t bytesRead;
+            while ((bytesRead = zip_fread(file, buffer, sizeof(buffer))) > 0) {
+                fwrite(buffer, 1, bytesRead, outputFile);
+            }
+
+            fclose(outputFile);
+            zip_fclose(file);
+
+            // Set file permissions
+            chmod(entryName,(mode_t)0644);
+        }
+    }
+
+    zip_close(archive);
+
+    printf("Zip file '%s' successfully unzipped to '%s'\n", zipFilePath, destinationFolder);
+    return 0;
 }

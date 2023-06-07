@@ -1,0 +1,12 @@
+[
+{
+  "directory": "/home/bens/Desktop/github/Linux_MTA/Assignment#2/build",
+  "command": "/usr/bin/cc  -I\"/home/bens/Desktop/github/Linux_MTA/Assignment#2\" -g -o CMakeFiles/ourProj.dir/main.c.o -c \"/home/bens/Desktop/github/Linux_MTA/Assignment#2/main.c\"",
+  "file": "/home/bens/Desktop/github/Linux_MTA/Assignment#2/main.c"
+},
+{
+  "directory": "/home/bens/Desktop/github/Linux_MTA/Assignment#2/build",
+  "command": "/usr/bin/cc  -I\"/home/bens/Desktop/github/Linux_MTA/Assignment#2\" -g -o CMakeFiles/ourProj.dir/Utilities.c.o -c \"/home/bens/Desktop/github/Linux_MTA/Assignment#2/Utilities.c\"",
+  "file": "/home/bens/Desktop/github/Linux_MTA/Assignment#2/Utilities.c"
+}
+]

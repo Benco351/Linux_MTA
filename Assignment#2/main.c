@@ -70,11 +70,21 @@ int main() {
 
             else if (number == 5)
             {
-                printf("Successfully zipped the DB files.\n");
+                int result = 0;
+                read(pipeToParent[0],&result,sizeof(int));
+                if(result == 0)
+                {
+                    printf("Successfully zipped the DB files.\n");
+                }
+                else
+                {
+                    printf("Zip Failed\n");
+                }               
             }
 
             else if (number == 6)
-            {
+            { 
+               
                 pid_t childPID;
                 read(pipeToParent[0], &childPID, sizeof(pid_t));
                 printf("Child process PID: %d\n", childPID);
@@ -82,6 +92,16 @@ int main() {
 
             else if (number == 7)
             {
+                int result = 0;
+                read(pipeToParent[0],&result,sizeof(int));
+                if(result == 0)
+                {
+                    printf("Successfully zipped the DB files.\n");
+                }
+                else
+                {
+                    printf("Zip Failed\n");
+                }           
                 int exitCode;
                 read(pipeToParent[0], &exitCode, sizeof(pid_t));
                 printf("Gracefully exiting.\nChild process's exit code: %d\n", exitCode);

@@ -12,6 +12,9 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <signal.h>
+#include <zip.h>
+#include <limits.h>
+#include <sys/stat.h>
 
 #define MAX_SIZE 300
 #define FD_MAX 15
@@ -23,7 +26,9 @@
 #define MISSION1 1
 #define MISSION2 2
 #define MISSION3 3
-
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
 typedef struct flightData
 {
     char icao24[FD_MAX];
@@ -80,5 +85,11 @@ void runRequestOnDB(char* parameters[], int numOfParameters, DB* db, int pipeToP
 char* compareFlights(DB* db, int *a, int *d, int airport);
 void findAirCrafts(char** aircraft, int nofAirCrafts, DB* db, char*** output, int* logSize, int* phySize);
 void reRunScript(DB* db);
+//////////////////////////////ZIP Functions////////////////////////////////
+void addFileToZip(struct zip* archive, const char* filePath, const char* entryName);
+void addFolderToZip(struct zip* archive, const char* folderPath, const char* baseDir);
+int zipFolder(const char* folderPath, const char* zipFilePath);
+int unzipFolder(const char* zipFilePath, const char* destinationFolder);
+
 
 #endif

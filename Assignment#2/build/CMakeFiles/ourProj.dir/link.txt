@@ -1,0 +1,1 @@
+/usr/bin/cc -g CMakeFiles/ourProj.dir/main.c.o CMakeFiles/ourProj.dir/Utilities.c.o -o ourProj  /usr/lib/x86_64-linux-gnu/libzip.so 
