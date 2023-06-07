@@ -20,13 +20,19 @@
 #define NAME_LEN 4
 #define READ 0
 #define WRITE 1
+#define DB_EXISTS 1
+#define DB_DOES_NOT_EXISTS 0
+#define GENERATE_DB 8
+#define MISSION1 1
+#define MISSION2 2
+#define MISSION3 3
 
 typedef struct flightData
 {
     char icao24[FD_MAX];
-    char firstSeen[FD_MAX + 5];
+    char firstSeen[FD_MAX + 10];
     char departureAirPort[FD_MAX];
-    char lastSeen[FD_MAX + 5];
+    char lastSeen[FD_MAX + 10];
     char arrivalAirPort[FD_MAX];
     char flightNumber[FD_MAX];
     unsigned short arrivalOrDeparture;
@@ -34,10 +40,10 @@ typedef struct flightData
 
 typedef struct airports
 {
-    int SizeArivals;
-    FlightData* arivals;
-    int SizeDeparturs;
-    FlightData* Departurs;
+    int SizeArrivals;
+    FlightData* arrivals;
+    int SizeDepartures;
+    FlightData* Departures;
 } AirPorts;
 
 typedef struct DataBase
@@ -50,45 +56,32 @@ typedef struct DataBase
 //////////////////////////////Data Base Functions//////////////////////////////
 void freeDataBase(DB* db);
 DB* getDataBase(int numOfArgs, char* airports[]);
-void swap(char* arr[], int i, int j);
-int partition(char* arr[], int low, int high);
-void quickSort(char* arr[], int low, int high);
 char** reorderStringArray(int numOfArgs, char* airports[]);
-int checkRows(FILE* file);
+char* unix_time_to_date(const char* timestamp_str);
+void openFilesByAirportName(char* airportName, FILE** departureFile, FILE** arrivalFile);
 //////////////////////////////General Functions//////////////////////////////
+int checkRows(FILE* file);
+bool doesZipExists();
 int compareStrings(const void* a, const void* b);
 void ReadOrWriteToPipe(char** output, int O_size, int pipe[2], bool SIG);
-void graceful_exit_handler(int signum);
-void sigint_handler(int signum);
-void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB* dataBase);
-void printMenu();
 int quickSearch(char* arr[], int size, char* target);
-char* unix_time_to_date(const char* timestamp_str);
-int howManyRowsInFile(FILE* file);
-void openFilesByAirportName(char* airportName, FILE** departureFile, FILE** arrivalFile);
-void loadDatabase(int numOfArgs, char* airports[]);
+void checkAllocation(void* ptr);
 FlightData splitS(char* str);
 char** createDirList(int* size);
-void checkAllocation(void* ptr);
+//////////////////////////////Parent Functions//////////////////////////////
+void graceful_exit_handler(int signum);
+void sigint_handler(int signum);
+void printMenu();
 bool isValidChar(char input);
-char** readInput(int* arrSize);
-//////////////////////////////Q1 Functions//////////////////////////////
-char** printFlightsToAirport(char* airportName, DB db, int pipeToParent[2], int* logSize);
-char* printFlightsData(FlightData object);
-void runQ1(char* parameters[], int numOfParameters, DB db, int pipeToParent[2]);
-//////////////////////////////Q2 Functions//////////////////////////////
-void printAirportSchedule(char* airportName, DB db, int pipeToParent[2]);
-int compareFlights(const void* a, const void* b);
-void printFullSchedule(FlightData object);
-void runQ2(char* parameters[], int numOfParameters, DB db, int pipeToParent[2]);
-//////////////////////////////Q3 Functions//////////////////////////////
-void findAirCrafts(char** aircrafts, int nofAirCrafts, DB db, int pipeToParent[2]);
-void printQ3(FlightData FD);
-void runQ3(char* parameters[], int numOfParameters, DB db, int pipeToParent[2]);
-//////////////////////////////Q4 Functions//////////////////////////////
-void runQ4();
-//////////////////////////////Q5 Functions//////////////////////////////
-//////////////////////////////Q6 Functions//////////////////////////////
-//////////////////////////////Q7 Functions//////////////////////////////
+char** readInput(int* size, int choice);
+//////////////////////////////Child Functions//////////////////////////////
+void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB* dataBase);
+void loadDatabase(int numOfArgs, char* airports[]);
+char** printFlightsToAirport(char* airportName, DB* db, int* logSize, int mission);
+char* printFlightsData(FlightData object, int mission);
+void runRequestOnDB(char* parameters[], int numOfParameters, DB* db, int pipeToParent[2], int mission);
+char* compareFlights(DB* db, int *a, int *d, int airport);
+void findAirCrafts(char** aircraft, int nofAirCrafts, DB* db, char*** output, int* logSize, int* phySize);
+void reRunScript();
 
 #endif
