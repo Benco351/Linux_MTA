@@ -4,11 +4,10 @@
 //The equivalent of howManyRows.
 int checkRows(FILE* file)
 {
-    printf("In checkRows!\n");
     int counter = 0;
     char input;
 
-    for (input = getc(file); input != EOF; input = getc(file))
+    for (input = (char)getc(file); input != EOF; input = (char)getc(file))
     {
         if (input == '\n')
             counter++;
@@ -16,8 +15,7 @@ int checkRows(FILE* file)
 
     fseek(file, 0, SEEK_SET);
 
-    printf("Exited checkRows with value %d\n", counter - 1);
-    return (counter - 1);
+    return (counter);
 }
 
 //free Data base
@@ -30,35 +28,26 @@ void freeDataBase(DB* db)
 
     for (int i = 0; i < db->nofAirports; i++)
     {
-        free(db->airPortsArr[i].arivals);
-        free(db->airPortsArr[i].Departurs);
+        free(db->airPortsArr[i].arrivals);
+        free(db->airPortsArr[i].Departures);
     }
 
     free(db);
 }
 
-//build data base
+//build database
 DB* getDataBase(int numOfArgs, char* airports[])
 {
-    int debug = 0;
-    printf("Am in getDB\n");
-    printf("Got arguments: %d\n", numOfArgs);
-    for (int i = 0; i < numOfArgs; i++)
-        printf("%s\n", airports[i]);
-    printf("Breakpoint#%d\n", debug++);
-
     DB* DataBase = (DB*)malloc(sizeof(DB));
     checkAllocation(DataBase);
     DataBase->nofAirports = numOfArgs;
     DataBase->airPortsArr = (AirPorts*)malloc(sizeof(AirPorts) * numOfArgs);
     checkAllocation(DataBase->airPortsArr);
-    printf("Breakpoint#%d\n", debug++);
 
-    //reorder airporst names:
+    //reorder airports names
     DataBase->airPortsNames = reorderStringArray(numOfArgs, airports);
-    printf("Breakpoint#%d\n", debug++);
 
-    //get the data base for each airport
+    //get the database for each airport
     for (int q = 0; q < numOfArgs; q++)
     {
         FILE* arrivalsFile, * departuresFile;
@@ -68,107 +57,80 @@ DB* getDataBase(int numOfArgs, char* airports[])
         char departures[MAX_SIZE];
 
         openFilesByAirportName(DataBase->airPortsNames[q], &departuresFile, &arrivalsFile);
-        printf("Breakpoint#%d\n", debug++); //We get here!
 
-        //Option 1: call howManyRows - doesn't work
-        //Option 2: call checkRows - doesn't work
-        //Option 3: copy checkRows to here - STILL DOESN'T WORK!!
-
-        DataBase->airPortsArr[q].SizeDeparturs = checkRows(departuresFile);
-        DataBase->airPortsArr[q].SizeArivals = checkRows(arrivalsFile);
-        printf("Breakpoint#%d\n", debug++);
+        DataBase->airPortsArr[q].SizeDepartures = checkRows(departuresFile);
+        DataBase->airPortsArr[q].SizeArrivals = checkRows(arrivalsFile);
 
         fgets(firstRowA, MAX_SIZE, arrivalsFile);
         fgets(firstRowD, MAX_SIZE, departuresFile);
-        printf("Breakpoint#%d\n", debug++);
 
-        DataBase->airPortsArr[q].arivals = (FlightData*)malloc(sizeof(FlightData) *
-                (DataBase->airPortsArr[q].SizeArivals));
-        DataBase->airPortsArr[q].Departurs = (FlightData*)malloc(sizeof(FlightData) *
-                (DataBase->airPortsArr[q].SizeDeparturs));
-        checkAllocation(DataBase->airPortsArr[q].arivals);
-        checkAllocation(DataBase->airPortsArr[q].Departurs);
+        DataBase->airPortsArr[q].arrivals = (FlightData*)malloc(sizeof(FlightData) *
+                                                                (DataBase->airPortsArr[q].SizeArrivals));
+        DataBase->airPortsArr[q].Departures = (FlightData*)malloc(sizeof(FlightData) *
+                                                                  (DataBase->airPortsArr[q].SizeDepartures));
+        checkAllocation(DataBase->airPortsArr[q].arrivals);
+        checkAllocation(DataBase->airPortsArr[q].Departures);
 
-        for (int i = 0; i < DataBase->airPortsArr[q].SizeArivals; i++)
+        for (int i = 0; i < DataBase->airPortsArr[q].SizeArrivals; i++)
         {
             fgets(arrivals, MAX_SIZE, arrivalsFile);
-            DataBase->airPortsArr[q].arivals[i] = splitS(arrivals);
-            DataBase->airPortsArr[q].arivals[i].arrivalOrDeparture = ARRIVAL;
+            DataBase->airPortsArr[q].arrivals[i] = splitS(arrivals);
+            DataBase->airPortsArr[q].arrivals[i].arrivalOrDeparture = ARRIVAL;
         }
 
-        for (int i = 0; i < (DataBase->airPortsArr[q].SizeDeparturs); i++)
+        for (int i = 0; i < (DataBase->airPortsArr[q].SizeDepartures); i++)
         {
             fgets(departures, MAX_SIZE, departuresFile);
-            DataBase->airPortsArr[q].Departurs[i] = splitS(departures);
-            DataBase->airPortsArr[q].Departurs[i].arrivalOrDeparture = DEPARTURE;
+            DataBase->airPortsArr[q].Departures[i] = splitS(departures);
+            DataBase->airPortsArr[q].Departures[i].arrivalOrDeparture = DEPARTURE;
         }
-        printf("Breakpoint#%d\n", debug++);
 
         fclose(arrivalsFile);
         fclose(departuresFile);
     }
 
-    printf("Exit getDB\n");
     return DataBase;
-}
-
-void swap(char* arr[], int i, int j)
-{
-    char* temp = arr[i];
-    arr[i] = arr[j];
-    arr[j] = temp;
-}
-
-int partition(char* arr[], int low, int high)
-{
-    int pivot_length = strlen(arr[high]);
-    int i = low - 1;
-
-    for (int j = low; j <= high - 1; j++) {
-        if (strlen(arr[j]) <= pivot_length) {
-            i++;
-            swap(arr, i, j);
-        }
-    }
-    swap(arr, i + 1, high);
-    return (i + 1);
-}
-
-void quickSort(char* arr[], int low, int high)
-{
-    if (low < high) {
-        int pivot = partition(arr, low, high);
-        quickSort(arr, low, pivot - 1);
-        quickSort(arr, pivot + 1, high);
-    }
 }
 
 char** reorderStringArray(int numOfArgs, char* airports[])
 {
-    printf("In reorder!\n");
-    int debug = 0;
     // Create a new array to store the reordered strings
     char** reordered = (char**)malloc(numOfArgs * sizeof(char*));
     checkAllocation(reordered);
-    printf("Breakpoint#%d\n", debug++);
     for (int i = 0; i < numOfArgs; i++) {
         reordered[i] = (char*)malloc((strlen(airports[i]) + 1) * sizeof(char));
         checkAllocation(reordered[i]);
         strcpy(reordered[i], airports[i]);
-        printf("Breakpoint#%d\n", debug++);
     }
     qsort(reordered, numOfArgs, sizeof(char*), compareStrings);
-    //quickSort(reordered, 0, numOfArgs - 1);
-    printf("Exit reorder!\n");
-    for (int i = 0; i < numOfArgs; i++)
-        printf("%s\n", reordered[i]);
 
     return reordered;
 }
 
 //////////////////////////////General Functions//////////////////////////////
+bool doesZipExists()
+{
+    bool output = false;
+    DIR *dir;
+    struct dirent *entry;
+
+    dir = opendir("..");
+
+    while (dir != NULL && (entry = readdir(dir)) != NULL)
+    {
+        if (strcmp(entry->d_name, "flightsDB.zip") == 0) {
+            output = true;
+            break;
+        }
+    }
+
+    closedir(dir);
+    return output;
+}
+
 // Comparison function for qsort
-int compareStrings(const void* a, const void* b) {
+int compareStrings(const void* a, const void* b)
+{
     const char** str1 = (const char**)a;
     const char** str2 = (const char**)b;
     return strcmp(*str1, *str2);
@@ -176,7 +138,6 @@ int compareStrings(const void* a, const void* b) {
 
 void ReadOrWriteToPipe(char** output, int O_size, int pipe[2], bool SIG)
 {
-    printf("I'm writing to the pipe!\n");
     int currentStrSize = 0;
 
     if (SIG == READ)//read
@@ -194,7 +155,7 @@ void ReadOrWriteToPipe(char** output, int O_size, int pipe[2], bool SIG)
     {
         for (int i = 0; i < O_size; i++)
         {
-            currentStrSize = strlen(output[i]);
+            currentStrSize = (int)strlen(output[i]);
             write(pipe[1], &currentStrSize, sizeof(int));
             write(pipe[1], output[i], currentStrSize);
             output[i][currentStrSize] = '\0';
@@ -204,44 +165,42 @@ void ReadOrWriteToPipe(char** output, int O_size, int pipe[2], bool SIG)
 
 void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB* dataBase)
 {
-    printf("Reached child process with choice %d\n", number);
-    int arrSize = 0, currentStrSize = 0;
-    char** output = 0;
+    int arrSize = 0, exitCode;
+    char** output = NULL;
     pid_t childId;
 
-    if (number >= 1 && number <= 3)
+    if (number >= 1 && number <= 3 || number == GENERATE_DB)
     {
         read(pipeToChild[0], &arrSize, sizeof(int));
-        printf("Got arrSize: %d\n", arrSize);
         output = (char**)malloc(sizeof(char*) * arrSize);
         checkAllocation(output);
-
         ReadOrWriteToPipe(output, arrSize, pipeToChild, READ);
-
-        printf("Got output arr: %s\n", output[0]);
+        runRequestOnDB(output, arrSize, dataBase, pipeToParent, number);
     }
 
     switch(number)
     {
-        case 1:
-            runQ1(output, arrSize, *dataBase, pipeToParent);
-            break;
-        case 2:
-            runQ2(output, arrSize, *dataBase, pipeToParent);
-            break;
-        case 3:
-            runQ3(output, arrSize, *dataBase, pipeToParent);
         case 4:
-
+            reRunScript();
+            break;
         case 5:
-
+            //zip DB
+            break;
         case 6:
-
+            childId = getpid();
+            write(pipeToParent[1], &childId, sizeof(childId));
+            break;
         case 7:
-
+            //zip DB.
+            exitCode = EXIT_SUCCESS;
+            write(pipeToParent[1], &exitCode, sizeof(exitCode));
+            freeDataBase(dataBase);
+            exit(EXIT_SUCCESS);
+        case GENERATE_DB:
+            loadDatabase(arrSize, output);
+            break;
         default:
             break;
-
     }
 
     for (int i = 0; i < arrSize; i++)
@@ -258,7 +217,7 @@ void graceful_exit_handler(int signum)
     if (signum == SIGUSR1)
     {
         printf("Graceful exit signal received\n");
-        // zip_db_files(); // Assuming this function takes care of the DB zipping
+        // zip_db_files();
         exit(0);
     }
 }
@@ -281,16 +240,12 @@ void printMenu()
     printf("4. Update the existing airports in the DB with recent data (rerun BASH script).\n");
     printf("5. Zip the DB files.\n");
     printf("6. Get child process's ID.\n");
-    printf("7. Graceful exit - child shall zip the DB files and terminate (think about collecting the exit status of the child process).\n");
+    printf("7. Graceful exit - child shall zip the DB files and terminate.\n");
     printf("Enter your choice (1-7): ");
 }
 
 //this is a search function to find the needed airport
 int quickSearch(char* arr[], int size, char* target) {
-    printf("Were in qSearch!\n");
-    printf("Parameters: %d\n", size);
-    for (int i = 0; i < size; i++)
-        printf("%s\n", arr[i]);
     int left = 0;
     int right = size - 1;
 
@@ -316,7 +271,6 @@ int quickSearch(char* arr[], int size, char* target) {
 //splits the string into type FlightData and returns it
 FlightData splitS(char* str)
 {
-    printf("In splitS!\n");
     FlightData FD;
 
     strcpy(FD.icao24, strtok(str, ","));
@@ -324,29 +278,9 @@ FlightData splitS(char* str)
     strcpy(FD.departureAirPort, strtok(NULL, ","));
     strcpy(FD.lastSeen, unix_time_to_date(strtok(NULL, ",")));
     strcpy(FD.arrivalAirPort, strtok(NULL, ","));
-    strcpy(FD.flightNumber, strtok(NULL, ",\n"));
+    strcpy(FD.flightNumber, strtok(NULL, ",\n\r"));
 
-    printf("Exiting splitS!\n");
     return FD;
-}
-
-//this function checks how many flights are in a specific file
-int howManyRowsInFile(FILE* file)
-{
-    printf("In how many rows!");
-    int counter = 0;
-    char input;
-
-    for (input = getc(file); input != EOF; input = getc(file))
-    {
-        if (input == '\n')
-            counter++;
-    }
-
-    fseek(file, 0, SEEK_SET);
-
-    printf("Exited numOfRows with value %d", counter - 1);
-    return counter - 1;
 }
 
 void checkAllocation(void* pointer)
@@ -357,8 +291,6 @@ void checkAllocation(void* pointer)
 
 void openFilesByAirportName(char* airportName, FILE** departureFile, FILE** arrivalFile) //Opens an airport's database.
 {
-    printf("In openfiles!\n");
-    int debug = 0;
     char dir1[MAX_SIZE] = "../flightsDB/";
     char dir2[MAX_SIZE];
     strcat(dir1, airportName);
@@ -369,17 +301,13 @@ void openFilesByAirportName(char* airportName, FILE** departureFile, FILE** arri
     strcat(dir1, ".dpt");
     strcat(dir2, ".arv");
 
-    printf("Breakpoint#%d\n", debug++);
-    printf("%s\n", dir1);
-    printf("%s\n", dir1);
     *departureFile = fopen(dir1, "r");
     *arrivalFile = fopen(dir2, "r");
-    printf("Exit open file\n");
 }
 
 void loadDatabase(int numOfArgs, char* airports[]) //Loads database according to arguments.
 {
-    char command[MAX_SIZE] = "bash flightScanner.sh";
+    char command[MAX_SIZE] = "bash ../flightScanner.sh";
     for (int i = 0; i < numOfArgs; i++)
     {
         strcat(command," ");
@@ -389,8 +317,8 @@ void loadDatabase(int numOfArgs, char* airports[]) //Loads database according to
     system(command);
 }
 
-//this function gets and open file of specific airport, the aircrafts searched for and their number
-//returns all flights for said aircrafts in given airport
+//this function gets and open file of specific airport, the aircraft searched for and their number
+//returns all flights for said aircraft in given airport
 char* unix_time_to_date(const char* timestamp_str) {
     time_t timestamp = atoi(timestamp_str);
     struct tm* timeinfo_local;
@@ -413,7 +341,7 @@ char* unix_time_to_date(const char* timestamp_str) {
     timeinfo_target = gmtime(&timestamp_target);
 
     // Format date string
-    if (strftime(buffer, 80, "%Y-%m-%d %H:%S:%M", timeinfo_target) == 0) {
+    if (strftime(buffer, 80, "%Y-%m-%d %H:%S:%M\0", timeinfo_target) == 0) {
         fprintf(stderr, "strftime failed\n");
         return NULL;
     }
@@ -423,23 +351,18 @@ char* unix_time_to_date(const char* timestamp_str) {
 
 char** createDirList(int* size)
 {
-    printf("I'm in DirList\n");
-    int debug = 0;
     char** output = NULL;
     int phySize = 1, logSize = 0;
 
     output = (char**)malloc(sizeof(char*) * phySize);
     checkAllocation(output);
-    printf("Breakpoint#%d\n", debug++);
 
     DIR* directory = opendir("../flightsDB/");
     checkAllocation(directory);
-    printf("Breakpoint#%d\n", debug++);
 
     struct dirent* entry;
     while ((entry = readdir(directory)) != NULL)
     {
-        printf("Breakpoint#%d\n", debug++);
         // Exclude hidden files/directories that start with a dot
         if (entry->d_name[0] != '.' && strlen(entry->d_name) == NAME_LEN)
         {
@@ -458,24 +381,21 @@ char** createDirList(int* size)
             logSize++;
         }
     }
-    printf("Breakpoint#%d\n", debug++);
 
     output = (char**)realloc(output, logSize * sizeof(char*));
     checkAllocation(output);
     *size = logSize;
-    printf("Breakpoint#%d\n", debug++);
 
     closedir(directory);
-    printf("I exit DirList\n");
     return output;
 }
 
 bool isValidChar(char input)
 {
-    return (input == ',' || input == '\n'|| (input >= 65 && input <= 122));
+    return (input == ',' || input == '\n'|| (input >= 65 && input <= 122) || (input >= 48 && input <= 57));
 }
 
-char** readInput(int* size)
+char** readInput(int* size, int choice)
 {
     int arrLogSize = 0, arrPhySize = 0, currentStringLogSize = 0, currentStringPhySize = 0;
     char** output = NULL;
@@ -483,27 +403,50 @@ char** readInput(int* size)
     printf("Please enter desired input seperated by a single comma (,).\n"
            "For example: LLBG,LLTK\n\n");
 
-    char input = getchar();
+    char input = (char)getchar();
 
     if (input == '\n') //case of previous buffer.
     {
-        input = getchar();
+        input = (char)getchar();
     }
 
     while (input != '\n')
     {
         while (!isValidChar(input))
         {
-            input = getchar();
+            input = (char)getchar();
         }
 
-        if (input >= 97)
+        if (input >= 97 && choice != 3)
         {
             input -= 32;
         }
 
-        else if (input == '\n')
+        if (input == ',' || input == '\n')
         {
+            if (currentStringLogSize == currentStringPhySize)
+            {
+                currentStringPhySize += 1;
+                output[arrLogSize] = (char*)realloc(output[arrLogSize], currentStringPhySize * sizeof(char*));
+                checkAllocation(output[arrLogSize]);
+            }
+
+            else if (currentStringLogSize + 1 < currentStringPhySize)
+            {
+                currentStringPhySize = currentStringLogSize + 1;
+                output[arrLogSize] = (char*)realloc(output[arrLogSize], currentStringPhySize * sizeof(char*));
+                checkAllocation(output[arrLogSize]);
+            }
+
+            output[arrLogSize][currentStringLogSize] = '\0';
+            arrLogSize++;
+            currentStringLogSize = 0;
+            currentStringPhySize = 0;
+
+            if (input == ',')
+            {
+                input = (char)getchar();
+            }
             continue;
         }
 
@@ -543,7 +486,7 @@ char** readInput(int* size)
 
         output[arrLogSize][currentStringLogSize] = input;
         currentStringLogSize++;
-        input = getchar();
+        input = (char)getchar();
 
         if (input == ',' || input == '\n')
         {
@@ -568,7 +511,7 @@ char** readInput(int* size)
 
             if (input == ',')
             {
-                input = getchar();
+                input = (char)getchar();
             }
             continue;
         }
@@ -584,44 +527,60 @@ char** readInput(int* size)
     return output;
 }
 //////////////////////////////Q1 Functions//////////////////////////////
-char** printFlightsToAirport(char* airportName, DB db, int pipeToParent[2], int* logSize) //Prints all flights details to airportName.
+char** printFlightsToAirport(char* airportName, DB* db, int* logSize ,int mission) //Prints all flights details to airportName.
 {
-    printf("I'm now in printFlights!\n");
-    int debug = 0;
     char** output = (char**)malloc(sizeof(char*) * MAX_SIZE);
     int phySize = MAX_SIZE;
     *logSize = 0;
     int currStringSize = 0;
-    int j = quickSearch(db.airPortsNames, db.nofAirports, airportName);
+    int j = quickSearch(db->airPortsNames, db->nofAirports, airportName);
 
     if (j != -1)
     {
-        if ((*logSize) == phySize || db.airPortsArr[j].SizeArivals > phySize - (*logSize))
+        currStringSize = snprintf(NULL, 0, "\n-------------------------%s-------------------------\n", airportName);
+        output[*logSize] = (char*)malloc(currStringSize + 1);
+        checkAllocation(output);
+        snprintf(output[*logSize], currStringSize + 1, "\n-------------------------%s-------------------------\n", airportName);
+        (*logSize)++;
+        if (mission == MISSION1)
         {
-            phySize *= 2;
-            output = (char**)realloc(output, sizeof(char*) * phySize);
-            checkAllocation(output);
+            for (int i = 0; i < db->airPortsArr[j].SizeArrivals; i++)//for each arrival
+            {
+                if(*logSize == phySize)
+                {
+                    phySize *= 2;
+                    output = (char**)realloc(output, sizeof(char*) * phySize);
+                    checkAllocation(output);
+                }
+                output[*logSize] = printFlightsData(db->airPortsArr[j].arrivals[i], MISSION1);
+                (*logSize)++;
+            }
         }
 
-        currStringSize = snprintf(NULL, 0, "-------------------------%s-------------------------\n",
-                                  airportName);
-        output[*logSize] = (char*)malloc(currStringSize + 1);
-        checkAllocation(output);
-        snprintf(output[*logSize], currStringSize + 1, "-------------------------%s-------------------------\n",
-                 airportName);
-        (*logSize)++;
-        for (int i = 0; i < db.airPortsArr[j].SizeArivals; i++)
+        else if (mission == MISSION2)
         {
-            output[*logSize] = printFlightsData(db.airPortsArr[j].arivals[i]);
-            (*logSize)++;
+            int size = db->airPortsArr[j].SizeArrivals + db->airPortsArr[j].SizeDepartures;
+            int a = 0, d = 0;
+            for (;(a+d) < size;) //for each arrival and departure
+            {
+                if(*logSize == phySize)
+                {
+                    phySize *= 2;
+                    output = (char**)realloc(output, sizeof(char*) * phySize);
+                    checkAllocation(output);
+                }
+                output[*logSize] = compareFlights(db, &a, &d, j);
+                (*logSize)++;
+            }
         }
+
     }
-    else
+    else if (j == -1)
     {
-        currStringSize = snprintf(NULL, 0, "\n%s does not exist in data base", airportName);
+        currStringSize = snprintf(NULL, 0, "\n%s does not exist in data base\n", airportName);
         output[*logSize] = (char*)malloc(currStringSize + 1);
         checkAllocation(output);
-        snprintf(output[*logSize], currStringSize + 1, "\n%s does not exist in data base", airportName);
+        snprintf(output[*logSize], currStringSize + 1, "\n%s does not exist in data base\n", airportName);
         (*logSize)++;
     }
 
@@ -634,16 +593,47 @@ char** printFlightsToAirport(char* airportName, DB db, int pipeToParent[2], int*
     return output;
 }
 
-//this function prints flights data
-char* printFlightsData(FlightData object)
+//this function prints flights data to a string and returns it
+char* printFlightsData(FlightData object, int mission)
 {
     char* output = (char*)malloc(sizeof(char) * MAX_SIZE);
     checkAllocation(output);
     int logSize = 0;
-    logSize = snprintf(NULL, 0, "Flight #%-7s arriving from %s, tookoff at %s landed at %s\n",
-                       object.flightNumber, object.departureAirPort, object.firstSeen, object.lastSeen);
-    snprintf(output, logSize + 1, "Flight #%-7s arriving from %s, tookoff at %s landed at %s\n",
-             object.flightNumber, object.departureAirPort, object.firstSeen, object.lastSeen);
+
+    switch (mission)
+    {
+        case MISSION1:
+        {
+            logSize = snprintf(NULL, 0, "Flight #%-7s arriving from %s, tookoff at %s landed at %s\n",
+                               object.flightNumber, object.departureAirPort, object.firstSeen, object.lastSeen);
+            snprintf(output, logSize + 1, "Flight #%-7s arriving from %s, tookoff at %s landed at %s\n",
+                     object.flightNumber, object.departureAirPort, object.firstSeen, object.lastSeen);
+        }
+        case MISSION2:
+        {
+            if (object.arrivalOrDeparture == ARRIVAL)
+            {
+                logSize = snprintf(NULL, 0,"Flight #%-7s arriving from %s at %s\n", object.flightNumber, object.departureAirPort, object.lastSeen);
+                snprintf(output, logSize + 1,"Flight #%-7s arriving from %s at %s\n", object.flightNumber, object.departureAirPort, object.lastSeen);
+            }
+            else if (object.arrivalOrDeparture == DEPARTURE)
+            {
+                logSize = snprintf(NULL, 0,"Flight #%-7s departing to %s at %s\n", object.flightNumber, object.arrivalAirPort, object.firstSeen);
+                snprintf(output, logSize + 1,"Flight #%-7s departing to %s at %s\n", object.flightNumber, object.arrivalAirPort, object.firstSeen);
+            }
+            break;
+        }
+        case MISSION3:
+        {
+            logSize = snprintf(NULL, 0, "%s departed from %s at %s arrived in %s at %s\n", object.icao24, object.departureAirPort, object.firstSeen, object.arrivalAirPort, object.lastSeen);
+            snprintf(output, logSize + 1, "%s departed from %s at %s arrived in %s at %s\n",
+                     object.icao24, object.departureAirPort, object.firstSeen, object.arrivalAirPort, object.lastSeen);
+            break;
+        }
+
+        default:
+            break;
+    }
 
     if (logSize < MAX_SIZE)
     {
@@ -655,43 +645,45 @@ char* printFlightsData(FlightData object)
     return output;
 }
 
-void runQ1(char* parameters[], int numOfParameters, DB db, int pipeToParent[2])
+void runRequestOnDB(char* parameters[], int numOfParameters, DB* db, int pipeToParent[2], int mission)
 {
-    printf("Im in Q1!\n");
-    printf("Our parameters: %d\n", numOfParameters);
-    printf("%s\n", parameters[0]);
-    int debug = 0;
     char** buffer = NULL, **output = NULL;
     int bufferLogSize = 0, bufferPhySize = MAX_SIZE;
     int outputLogSize = 0;
     buffer = (char**)malloc(sizeof(char*) * MAX_SIZE);
     checkAllocation(buffer);
+    if (mission == MISSION3)
+    {
+        findAirCrafts(parameters, numOfParameters, db, &buffer, &bufferLogSize, &bufferPhySize);
+    }
+    else
+    {
+        for (int i = 0; i < numOfParameters; i++)
+        {//for each airport
 
-    for (int i = 0; i < numOfParameters; i++) {
-        printf("I'm in the loop\n");
-        output = printFlightsToAirport(parameters[i], db, pipeToParent, &outputLogSize);
+            output = printFlightsToAirport(parameters[i], db, &outputLogSize, mission);
 
-        while (bufferPhySize - bufferLogSize < outputLogSize) {
-            bufferPhySize = 2 * (outputLogSize - (bufferPhySize - bufferLogSize));
-            buffer = (char **) realloc(buffer, sizeof(char *) * bufferPhySize);
-            checkAllocation(buffer);
-        }
-
-        for (int i = 0; i < outputLogSize; i++) {
-            buffer[bufferLogSize] = output[i];
-            bufferLogSize++;
+            while (bufferPhySize - bufferLogSize < outputLogSize)
+            {
+                bufferPhySize = 2 * (outputLogSize - (bufferPhySize - bufferLogSize));
+                buffer = (char **) realloc(buffer, sizeof(char *) * bufferPhySize);
+                checkAllocation(buffer);
+            }
+            for (int j = 0; j < outputLogSize; j++)
+            {
+                buffer[bufferLogSize] = output[j];
+                bufferLogSize++;
+            }
         }
     }
-    printf("Debug#%d\n", debug++);
 
-    if (bufferLogSize < bufferPhySize)
+    if(bufferLogSize < bufferPhySize)
     {
         buffer = (char**)realloc(buffer, sizeof(char*) * bufferLogSize);
         checkAllocation(buffer);
     }
 
     write(pipeToParent[1], &bufferLogSize, sizeof(int));
-    printf("I've written size: %d\n", bufferLogSize);
     ReadOrWriteToPipe(buffer, bufferLogSize, pipeToParent, WRITE);
 
     for (int i = 0; i < bufferLogSize; i++)
@@ -704,133 +696,74 @@ void runQ1(char* parameters[], int numOfParameters, DB db, int pipeToParent[2])
 //////////////////////////////Q2 Functions//////////////////////////////
 //this function gets Airport name
 //prints its schedule in order of time
-void printAirportSchedule(char* airportName, DB db, int pipeToParent[2])
+char* compareFlights(DB* db, int *a, int *d, int airport)
 {
-    int j = quickSearch(db.airPortsNames, db.nofAirports, airportName);
-    int size = db.airPortsArr[j].SizeArivals + db.airPortsArr[j].SizeDeparturs;
-    FlightData* data = (FlightData*)malloc(sizeof(FlightData) * (size));
-    checkAllocation(data);
-
-    for (int a = 0, d = 0; (a+d) < size;)
+    if (*a == db->airPortsArr[airport].SizeArrivals)
     {
-        if (a == db.airPortsArr[j].SizeArivals)
-        {
-            printFullSchedule(db.airPortsArr[j].Departurs[d]);
-            d++;
-        }
-        if (d == db.airPortsArr[j].SizeDeparturs)
-        {
-            printFullSchedule(db.airPortsArr[j].arivals[a]);
-            a++;
-        }
-        if (strcmp(db.airPortsArr[j].arivals[a].lastSeen, db.airPortsArr[j].Departurs[d].firstSeen) < 0)
-        {
-            printFullSchedule(db.airPortsArr[j].Departurs[d]);
-            d++;
-        }
-        else
-        {
-            printFullSchedule(db.airPortsArr[j].arivals[a]);
-            a++;
-        }
+        (*d) +=1;
+        return printFlightsData(db->airPortsArr[airport].Departures[(*d)-1], MISSION2);
     }
-}
-
-//this function compares Flights
-//int compareFlights(const void* a, const void* b)
-//{
-//    const FlightData* first = (const void*) a;
-//    const FlightData* second = (const void*) b;
-//    int output = 0;
-//
-//    if (first->arrivalOrDeparture == ARRIVAL && second->arrivalOrDeparture == ARRIVAL)
-//    {
-//        output = strcmp(first->lastSeen, second->lastSeen);
-//    }
-//
-//    else if (first->arrivalOrDeparture == ARRIVAL && second->arrivalOrDeparture == DEPARTURE)
-//    {
-//        output = strcmp(first->lastSeen, second->firstSeen);
-//    }
-//
-//    else if (first->arrivalOrDeparture == DEPARTURE && second->arrivalOrDeparture == ARRIVAL)
-//    {
-//        output = strcmp(first->firstSeen, second->lastSeen);
-//    }
-//
-//    else
-//    {
-//        output = strcmp(first->firstSeen, second->firstSeen);
-//    }
-//
-//    return output;
-//}
-
-//this function prints flight data 
-void printFullSchedule(FlightData object)
-{
-    if (object.arrivalOrDeparture == ARRIVAL)
+    if (*d == db->airPortsArr[airport].SizeArrivals)
     {
-        printf("Flight #%-7s arriving from %s at %s\n", object.flightNumber, object.departureAirPort, object.lastSeen);
+        (*a) +=1;
+        return printFlightsData(db->airPortsArr[airport].arrivals[(*a)-1], MISSION2);
     }
-
-    else if (object.arrivalOrDeparture == DEPARTURE)
+    if (strcmp(db->airPortsArr[airport].arrivals[(*a)].lastSeen, db->airPortsArr[airport].Departures[(*d)].firstSeen) < 0)
     {
-        printf("Flight #%-7s departing to  %s at %s\n", object.flightNumber, object.arrivalAirPort, object.firstSeen);
+        (*d) +=1;
+        return printFlightsData(db->airPortsArr[airport].Departures[(*d)-1], MISSION2);
     }
-}
-
-void runQ2(char* parameters[], int numOfParameters, DB db, int pipeToParent[2])
-{
-    for (int i = 1; i < numOfParameters; i++)
+    else
     {
-        printAirportSchedule(parameters[i], db, pipeToParent);
+        (*a) +=1;
+        return printFlightsData(db->airPortsArr[airport].arrivals[(*a) -1], MISSION2);
     }
 }
 //////////////////////////////Q3 Functions//////////////////////////////
 //this function gets and open file of specific airport, the aircraft searched for and their number
 //returns all flights for said aircraft in given airport
-void findAirCrafts(char** aircraft, int nofAirCrafts, DB db, int pipeToParent[2])
+void findAirCrafts(char** aircraft, int nofAirCrafts, DB* db, char*** output, int* logSize, int* phySize)
 {
-    for (int j = 0; j < db.nofAirports; j++)
+    for (int j = 0; j < db->nofAirports; j++)
     {
-        for (int k = 0; k < db.airPortsArr[j].SizeArivals; k++)
+        for (int k = 0; k < db->airPortsArr[j].SizeArrivals; k++)
         {
             for (int t = 0; t < nofAirCrafts; t++)
             {
-                if (strcmp(db.airPortsArr[j].arivals[k].icao24, aircraft[t + 1]) == 0)
+                if (strcmp(db->airPortsArr[j].arrivals[k].icao24, aircraft[t]) == 0)
                 {
-                    printQ3(db.airPortsArr[j].arivals[k]);
+                    if((*logSize) == *phySize)
+                    {
+                        (*phySize) *= 2;
+                        (*output) = (char**)realloc((**output), sizeof(char*) * (*phySize));
+                        checkAllocation(output);
+                    }
+                    (*output)[*logSize] = printFlightsData(db->airPortsArr[j].arrivals[k], MISSION3);
+                    (*logSize)++;
                 }
             }
         }
-        for (int k = 0; k < db.airPortsArr[j].SizeDeparturs; k++)
+        for (int k = 0; k < db->airPortsArr[j].SizeDepartures; k++)
         {
             for (int t = 0; t < nofAirCrafts; t++)
             {
-                if (strcmp(db.airPortsArr[j].Departurs[k].icao24, aircraft[t + 1]) == 0)
+                if (strcmp(db->airPortsArr[j].Departures[k].icao24, aircraft[t]) == 0)
                 {
-                    printQ3(db.airPortsArr[j].Departurs[k]);
+                    if ((*logSize) == *phySize)
+                    {
+                        (*phySize) *= 2;
+                        *output = (char**)realloc(*output, sizeof(char*) * (*phySize));
+                        checkAllocation(output);
+                    }
+                    (*output)[*logSize] = printFlightsData(db->airPortsArr[j].Departures[k], MISSION3);
+                    (*logSize)++;
                 }
             }
-
         }
     }
 }
-
-//this function prints flight data
-void printQ3(FlightData FD)
-{
-    printf("%s departed from %s at %s arrived in %s at %s\n",
-           FD.icao24, FD.departureAirPort, FD.firstSeen, FD.arrivalAirPort, FD.lastSeen);
-}
-
-void runQ3(char* parameters[], int numOfParameters, DB db, int pipeToParent[2])
-{
-    findAirCrafts(parameters, numOfParameters, db, pipeToParent);
-}
 //////////////////////////////Q4 Functions//////////////////////////////
-void runQ4()
+void reRunScript()
 {
     int sizeOfDirList = 0;
     char** dirList = createDirList(&sizeOfDirList);
@@ -841,6 +774,3 @@ void runQ4()
     }
     free(dirList);
 }
-//////////////////////////////Q5 Functions//////////////////////////////
-//////////////////////////////Q6 Functions//////////////////////////////
-//////////////////////////////Q7 Functions//////////////////////////////
