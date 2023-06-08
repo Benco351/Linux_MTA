@@ -78,3 +78,4 @@ for ICOA in "$@"
 do
     handleTerminal $ICOA
 done
+echo -e "Successfully updated the DB.\n"

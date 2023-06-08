@@ -69,7 +69,8 @@ int main()
 
             else if (number == 4)
             {
-                printf("Successfully updated the DB.\n");
+                // handels in script
+                printf("Script runs...\n");
             }
 
             else if (number == 5)

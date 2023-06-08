@@ -15,8 +15,9 @@ HOW TO RUN OUR PROGRAM?:
 3. Run the following command in terminal: 'cmake $(pwd)'
 4. Run the following command in terminal: 'cmake --build .'
 5. Run the following command in terminal: './ourProj'
-4. Run the following command in terminal: 'export LD_LIBRARY_PATH=./build'.
-5. Run your wanted program.
+6. Run your wanted program.
+----------------------
+NOTE: Option number 4 may cause issues at some points.
 ----------------------
 End of README
 ----------------------

@@ -838,6 +838,7 @@ void reRunScript(DB* db)
     char** APnames = db->airPortsNames;
     int size = db->nofAirports;
     freeDataBase(db);
+    db=NULL;
     int sizeOfDirList = 0;
     char** dirList = createDirList(&sizeOfDirList);
     loadDatabase(sizeOfDirList,dirList);
@@ -846,6 +847,7 @@ void reRunScript(DB* db)
         free(dirList[i]);
     }
     free(dirList);
+    db = (DB*)malloc(sizeof(DB));
     db = getDataBase(size, APnames);
 }
 /////////////////////////////////////ZIP Functions//////////////////////////////////
