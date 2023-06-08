@@ -240,31 +240,12 @@ void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB* data
             break;
         case 7:
             {
-                char cwd[PATH_MAX];
-                if (getcwd(cwd, sizeof(cwd)) != NULL) {
-                    int size = strlen(cwd);
-                    cwd[size - 6] ='\0';
-                    char tmp[PATH_MAX];
-                    strcpy(tmp,cwd);
-                    strcat(tmp,"/flightsDB.zip");
-                    strcat(cwd,"/flightsDB");
-                    bool DBFolderExists= doesDBFolderExists();
-                    if(DBFolderExists)
-                    {
-                        result = zipFolder(cwd, tmp);
-                    }
-                    else
-                    {
-                        result = 1;
-                    }
-                    write(pipeToParent[1],&result,sizeof(result));      
-                }
+             
                 exitCode = EXIT_SUCCESS;
                 childId = getpid();
                 write(pipeToParent[1], &childId, sizeof(childId));
                 write(pipeToParent[1], &exitCode, sizeof(exitCode));
                 freeDataBase(dataBase);
-                exit(EXIT_SUCCESS);
             }
         default:
             break;
@@ -273,10 +254,25 @@ void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB* data
 
 void graceful_exit_handler(int signum)
 {
+          
+    char tmp[PATH_MAX];
+    char cwd[PATH_MAX];
+    int size=0;
     if (signum == SIGUSR1)
     {
         printf("Graceful exit signal received\n");
-        // zip_db_files();
+        if (getcwd(cwd, sizeof(cwd)) != NULL) {
+            int size = strlen(cwd);
+            cwd[size - 6] ='\0';
+            strcpy(tmp,cwd);
+            strcat(tmp,"/flightsDB.zip");
+            strcat(cwd,"/flightsDB");
+            bool DBFolderExists= doesDBFolderExists();
+            if(DBFolderExists)
+            {
+                (void)zipFolder(cwd, tmp);
+            }  
+        }
         exit(0);
     }
 }

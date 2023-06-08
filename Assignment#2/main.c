@@ -94,22 +94,13 @@ int main()
 
             else if (number == 7)
             {
-                int result = 0;
-                read(pipeToParent[0],&result,sizeof(result));
-                if(result == 0)
-                {
-                    printf("Successfully zipped the DB files.\n");
-                }
-                else
-                {
-                    printf("Zip Failed\n");
-                }          
+               
                 int exitCode;
                 read(pipeToParent[0], &childPID, sizeof(pid_t));
                 read(pipeToParent[0], &exitCode, sizeof(int));
                 kill(childPID, SIGUSR1);
-                wait(NULL);
                 printf("Gracefully exiting.\nChild process's exit code: %d\n", exitCode);
+                wait(NULL);
                 exit(EXIT_SUCCESS);
             }
 
@@ -119,6 +110,9 @@ int main()
     
     else if (pid == 0) 
     {
+        signal(SIGUSR1, graceful_exit_handler);
+        signal(SIGINT, sigint_handler);
+  
         // Child process
         if (firstChildIteration)
         {
