@@ -5,7 +5,7 @@ Location=$(pwd);
 #function that handle a Terminal.
 handleTerminal()
 {
-    echo "retrieving $1 flights information...";
+    echo -e "\n\nretrieving $1 flights information...";
     if [ ! -d "$Location/flightsDB" ]; then
         mkdir flightsDB;
         cd flightsDB/;
