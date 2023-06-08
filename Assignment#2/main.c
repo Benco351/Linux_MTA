@@ -26,7 +26,7 @@ int main()
     {
         signal(SIGUSR1, graceful_exit_handler);
         signal(SIGINT, sigint_handler);
-
+  
         while (true) 
         {
             printMenu();
@@ -74,7 +74,16 @@ int main()
 
             else if (number == 5)
             {
-                printf("Successfully zipped the DB files.\n");
+                int result = 0;
+                read(pipeToParent[0],&result,sizeof(result));
+                if(result == 0)
+                {
+                    printf("Successfully zipped the DB files.\n");
+                }
+                else
+                {
+                    printf("Zip Failed\n");
+                }               
             }
 
             else if (number == 6)
@@ -85,9 +94,19 @@ int main()
 
             else if (number == 7)
             {
+                int result = 0;
+                read(pipeToParent[0],&result,sizeof(result));
+                if(result == 0)
+                {
+                    printf("Successfully zipped the DB files.\n");
+                }
+                else
+                {
+                    printf("Zip Failed\n");
+                }          
                 int exitCode;
-                read(pipeToParent[0], &exitCode, sizeof(int));
                 read(pipeToParent[0], &childPID, sizeof(pid_t));
+                read(pipeToParent[0], &exitCode, sizeof(int));
                 kill(childPID, SIGUSR1);
                 wait(NULL);
                 printf("Gracefully exiting.\nChild process's exit code: %d\n", exitCode);
@@ -103,19 +122,31 @@ int main()
         // Child process
         if (firstChildIteration)
         {
-            bool zipExists = doesZipExists();
-
-            if (zipExists)
+        int result  = 0;
+            char cwd[PATH_MAX];
+            char tmp[PATH_MAX];
+            getcwd(cwd, sizeof(cwd));
+            int size = strlen(cwd);
+            cwd[size - 6] ='\0';
+            strcpy(tmp,cwd);
+            strcat(tmp,"/flightsDB.zip");
+            strcat(cwd,"/flightsDB");
+            bool DBFolderExists= doesDBFolderExists();
+            if(!DBFolderExists)
             {
-                unzipFolder("/home/parallels/Linux_MTA/Assignment#2/flightsDB.zip", 
-                "/home/parallels/Linux_MTA/Assignment#2/flightsDB/");
+                mkdir(cwd,0777);
             }
-
+            bool zipExists = doesZipExists();
+            if (zipExists)
+            {  
+                if (cwd != NULL) {
+                    result = unzipFolder(tmp,cwd);
+                }
+            }
             char** dirList = NULL;
             int listSize = 0;
-            dirList = createDirList(&listSize);
-            dataBase = getDataBase(listSize, dirList);
-
+            dirList= createDirList(&listSize);
+            dataBase = getDataBase(listSize,dirList);
             firstChildIteration = false;
         }
 

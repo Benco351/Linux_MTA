@@ -2,6 +2,7 @@
     "cmake.configureOnOpen": false,
     "C_Cpp.errorSquiggles": "disabled",
     "files.associations": {
-        "limits.h": "c"
+        "limits.h": "c",
+        "sigevent-consts.h": "c"
     }
 }

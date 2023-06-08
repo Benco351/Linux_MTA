@@ -7,17 +7,14 @@ int checkRows(FILE* file)
     int counter = 0;
     char input;
 
-    printf("Were now checking rows!\n");
 
     for (input = getc(file); input != EOF; input = getc(file))
     {
-        printf("%d\n", counter);
         if (input == '\n')
             counter++;
     }
 
     fseek(file, 0, SEEK_SET);
-    printf("About to send checkrows value of %d\n", counter);
 
     return (counter);
 }
@@ -52,30 +49,19 @@ DB* getDataBase(int numOfArgs, char* airports[])
 
     //reorder airports names
     DataBase->airPortsNames = reorderStringArray(numOfArgs, airports);
-
-    for (int i = 0; i < numOfArgs; i++)
-    {
-        printf("%s\n", airports[i]);
-    }
-
     //get the database for each airport
     for (int q = 0; q < numOfArgs; q++)
     {
-        printf("I'm not going to print it\n");
         FILE* arrivalsFile, * departuresFile;
         char firstRowA[MAX_SIZE];
         char firstRowD[MAX_SIZE];
         char arrivals[MAX_SIZE];
         char departures[MAX_SIZE];
 
-        printf("About to go into open file!\n");
         openFilesByAirportName(DataBase->airPortsNames[q], &departuresFile, &arrivalsFile);
 
         DataBase->airPortsArr[q].SizeDepartures = checkRows(departuresFile);
         DataBase->airPortsArr[q].SizeArrivals = checkRows(arrivalsFile);
-        printf("Came back with checkRows values: %d, %d\n"
-        , DataBase->airPortsArr[q].SizeDepartures, DataBase->airPortsArr[q].SizeArrivals);
-
         fgets(firstRowA, MAX_SIZE, arrivalsFile);
         fgets(firstRowD, MAX_SIZE, departuresFile);
 
@@ -104,7 +90,6 @@ DB* getDataBase(int numOfArgs, char* airports[])
         fclose(departuresFile);
     }
     
-    printf("Created DB!\n");
     return DataBase;
 }
 
@@ -135,6 +120,25 @@ bool doesZipExists()
     while (dir != NULL && (entry = readdir(dir)) != NULL)
     {
         if (strcmp(entry->d_name, "flightsDB.zip") == 0) {
+            output = true;
+            break;
+        }
+    }
+
+    closedir(dir);
+    return output;
+}
+bool doesDBFolderExists()
+{
+    bool output = false;
+    DIR *dir;
+    struct dirent *entry;
+
+    dir = opendir("..");
+
+    while (dir != NULL && (entry = readdir(dir)) != NULL)
+    {
+        if (strcmp(entry->d_name, "flightsDB") == 0) {
             output = true;
             break;
         }
@@ -185,6 +189,7 @@ void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB* data
     char** output = NULL;
     pid_t childId;
     char cwd[PATH_MAX];
+    int result = 0;
 
     if (number >= 1 && number <= 3)
     {
@@ -209,22 +214,58 @@ void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB* data
             reRunScript(dataBase);
             break;
         case 5:
-            zipFolder("/home/parallels/Linux_MTA/Assignment#2/flightsDB/", 
-            "/home/parallels/Linux_MTA/Assignment#2/flightsDB.zip");
+            if (getcwd(cwd, sizeof(cwd)) != NULL) {
+                int size = strlen(cwd);
+                cwd[size - 6] ='\0';
+                char tmp[PATH_MAX];
+                strcpy(tmp,cwd);
+                strcat(tmp,"/flightsDB.zip");
+                strcat(cwd,"/flightsDB");
+                 bool DBFolderExists= doesDBFolderExists();
+                if(DBFolderExists)
+                {
+                    result = zipFolder(cwd, tmp);
+                }
+                else
+                {
+                    result = 1;
+                }
+                write(pipeToParent[1],&result,sizeof(result));      
+            }
+             
             break;
         case 6:
             childId = getpid();
             write(pipeToParent[1], &childId, sizeof(childId));
             break;
         case 7:
-            zipFolder("/home/parallels/Linux_MTA/Assignment#2/flightsDB/", 
-            "/home/parallels/Linux_MTA/Assignment#2/flightsDB.zip");
-            childId = getpid();
-            exitCode = EXIT_SUCCESS;
-            write(pipeToParent[1], &exitCode, sizeof(exitCode));
-            write(pipeToParent[1], &childId, sizeof(childId));
-            freeDataBase(dataBase);
-            exit(EXIT_SUCCESS);
+            {
+                char cwd[PATH_MAX];
+                if (getcwd(cwd, sizeof(cwd)) != NULL) {
+                    int size = strlen(cwd);
+                    cwd[size - 6] ='\0';
+                    char tmp[PATH_MAX];
+                    strcpy(tmp,cwd);
+                    strcat(tmp,"/flightsDB.zip");
+                    strcat(cwd,"/flightsDB");
+                    bool DBFolderExists= doesDBFolderExists();
+                    if(DBFolderExists)
+                    {
+                        result = zipFolder(cwd, tmp);
+                    }
+                    else
+                    {
+                        result = 1;
+                    }
+                    write(pipeToParent[1],&result,sizeof(result));      
+                }
+                exitCode = EXIT_SUCCESS;
+                childId = getpid();
+                write(pipeToParent[1], &childId, sizeof(childId));
+                write(pipeToParent[1], &exitCode, sizeof(exitCode));
+                freeDataBase(dataBase);
+                exit(EXIT_SUCCESS);
+            }
         default:
             break;
     }
@@ -242,9 +283,24 @@ void graceful_exit_handler(int signum)
 
 void sigint_handler(int signum)
 {
+    char tmp[PATH_MAX];
+    char cwd[PATH_MAX];
+    int size=0;
     if (signum == SIGINT)
     {
-        printf("CTRL+C signal received\n");
+        printf("\nCTRL+C signal received\n");
+        if (getcwd(cwd, sizeof(cwd)) != NULL) {
+            int size = strlen(cwd);
+            cwd[size - 6] ='\0';
+            strcpy(tmp,cwd);
+            strcat(tmp,"/flightsDB.zip");
+            strcat(cwd,"/flightsDB");
+            bool DBFolderExists= doesDBFolderExists();
+            if(DBFolderExists)
+            {
+                (void)zipFolder(cwd, tmp);
+            }
+        }
         kill(getpid(), SIGUSR1);
     }
 }
@@ -309,7 +365,6 @@ void checkAllocation(void* pointer)
 
 void openFilesByAirportName(char* airportName, FILE** departureFile, FILE** arrivalFile) //Opens an airport's database.
 {
-    printf("In open file!\n");
     char dir1[MAX_SIZE] = "../flightsDB/";
     char dir2[MAX_SIZE];
     strcat(dir1, airportName);
@@ -322,7 +377,6 @@ void openFilesByAirportName(char* airportName, FILE** departureFile, FILE** arri
 
     *departureFile = fopen(dir1, "r");
     *arrivalFile = fopen(dir2, "r");
-    printf("Exiting open file!\n");
 }
 
 void loadDatabase(int numOfArgs, char* airports[]) //Loads database according to arguments.
@@ -371,7 +425,6 @@ char* unix_time_to_date(const char* timestamp_str) {
 
 char** createDirList(int* size)
 {
-    printf("In create DirList!\n");
     char** output = NULL;
     int phySize = 1, logSize = 0;
 
@@ -408,7 +461,6 @@ char** createDirList(int* size)
     *size = logSize;
 
     closedir(directory);
-    printf("Created dirlist!\n");
     return output;
 }
 
@@ -874,7 +926,6 @@ int zipFolder(const char* folderPath, const char* zipFilePath)
 int unzipFolder(const char* zipFilePath, const char* destinationFolder) {
     struct zip* archive = zip_open(zipFilePath, 0, NULL);
     if (!archive) {
-        printf("Failed to open zip file '%s'\n", zipFilePath);
         return 1;
     }
 
@@ -894,7 +945,6 @@ int unzipFolder(const char* zipFilePath, const char* destinationFolder) {
 
             struct zip_file* file = zip_fopen_index(archive, i, 0);
             if (!file) {
-                printf("Failed to open file '%s' in zip archive\n", entryStat.name);
                 continue;
             }
 
@@ -909,7 +959,6 @@ int unzipFolder(const char* zipFilePath, const char* destinationFolder) {
 
             FILE* outputFile = fopen(entryName, "wb");
             if (!outputFile) {
-                printf("Failed to create file '%s'\n", entryName);
                 zip_fclose(file);
                 continue;
             }
@@ -931,7 +980,6 @@ int unzipFolder(const char* zipFilePath, const char* destinationFolder) {
     zip_close(archive);
     remove(zipFilePath);
 
-    printf("Zip file '%s' successfully unzipped to '%s'\n", zipFilePath, destinationFolder);
     return 0;
 }
 
