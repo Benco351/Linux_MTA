@@ -1,10 +1,11 @@
 #include "Utilities.h"
 
-int main() {
+int main() 
+{
     int pipeToChild[2]; // Pipe for sending numbers from parent to child
     int pipeToParent[2]; // Pipe for sending signals from child to parent
     int number;
-    pid_t pid;
+    pid_t pid, childPID;
     DB* dataBase;
     bool firstChildIteration = true;
 
@@ -15,16 +16,19 @@ int main() {
 
     pid = fork(); // Create a child process
 
-    if (pid < 0) {
+    if (pid < 0) 
+    {
         fprintf(stderr, "Fork failed.\n");
         return 1;
     }
 
-    if (pid > 0) {
+    if (pid > 0) 
+    {
         signal(SIGUSR1, graceful_exit_handler);
         signal(SIGINT, sigint_handler);
 
-        while (true) {
+        while (true) 
+        {
             printMenu();
             scanf("%d", &number);
 
@@ -70,52 +74,32 @@ int main() {
 
             else if (number == 5)
             {
-                int result = 0;
-                read(pipeToParent[0],&result,sizeof(int));
-                if(result == 0)
-                {
-                    printf("Successfully zipped the DB files.\n");
-                }
-                else
-                {
-                    printf("Zip Failed\n");
-                }               
+                printf("Successfully zipped the DB files.\n");
             }
 
             else if (number == 6)
-            { 
-               
-                pid_t childPID;
+            {
                 read(pipeToParent[0], &childPID, sizeof(pid_t));
                 printf("Child process PID: %d\n", childPID);
             }
 
             else if (number == 7)
             {
-                int result = 0;
-                read(pipeToParent[0],&result,sizeof(int));
-                if(result == 0)
-                {
-                    printf("Successfully zipped the DB files.\n");
-                }
-                else
-                {
-                    printf("Zip Failed\n");
-                }           
                 int exitCode;
-                read(pipeToParent[0], &exitCode, sizeof(pid_t));
+                read(pipeToParent[0], &exitCode, sizeof(int));
+                read(pipeToParent[0], &childPID, sizeof(pid_t));
+                kill(childPID, SIGUSR1);
+                wait(NULL);
                 printf("Gracefully exiting.\nChild process's exit code: %d\n", exitCode);
                 exit(EXIT_SUCCESS);
             }
 
             printf("\n");
         }
-
-        close(pipeToChild[1]); // Close the write end of the pipe for numbers
-        close(pipeToParent[0]); // Close the read end of the pipe for signals
-
-        wait(NULL); // Wait for the child process to finish
-    } else if (pid == 0) {
+    } 
+    
+    else if (pid == 0) 
+    {
         // Child process
         if (firstChildIteration)
         {
@@ -123,12 +107,14 @@ int main() {
 
             if (zipExists)
             {
-                //unzip
-                char** dirList = NULL;
-                int listSize = 0;
-                dirList = createDirList(&listSize);
-                dataBase = getDataBase(listSize, dirList);
+                unzipFolder("/home/parallels/Linux_MTA/Assignment#2/flightsDB.zip", 
+                "/home/parallels/Linux_MTA/Assignment#2/flightsDB/");
             }
+
+            char** dirList = NULL;
+            int listSize = 0;
+            dirList = createDirList(&listSize);
+            dataBase = getDataBase(listSize, dirList);
 
             firstChildIteration = false;
         }
@@ -138,9 +124,6 @@ int main() {
             read(pipeToChild[0], &number, sizeof(number));
             child_process(pipeToChild, pipeToParent, number, dataBase);
         }
-
-        close(pipeToChild[0]);
-        close(pipeToParent[1]);
 
         exit(0);
     }

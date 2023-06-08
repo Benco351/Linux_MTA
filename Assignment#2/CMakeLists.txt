@@ -6,4 +6,5 @@ add_executable(ourProj main.c Utilities.c)
 
 # Add the include directory
 target_include_directories(ourProj PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(ourProj /usr/lib/x86_64-linux-gnu/libzip.so)
+find_library(LIBZIP_LIBRARY NAMES zip)
+target_link_libraries(ourProj ${LIBZIP_LIBRARY})

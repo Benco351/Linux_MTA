@@ -27,8 +27,9 @@
 #define MISSION2 2
 #define MISSION3 3
 #ifndef PATH_MAX
-#define PATH_MAX 4096
+#define PATH_MAX 256
 #endif
+
 typedef struct flightData
 {
     char icao24[FD_MAX];
@@ -90,6 +91,6 @@ void addFileToZip(struct zip* archive, const char* filePath, const char* entryNa
 void addFolderToZip(struct zip* archive, const char* folderPath, const char* baseDir);
 int zipFolder(const char* folderPath, const char* zipFilePath);
 int unzipFolder(const char* zipFilePath, const char* destinationFolder);
-
+void removeDirectory(const char* path);
 
 #endif

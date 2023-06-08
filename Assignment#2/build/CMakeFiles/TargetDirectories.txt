@@ -1,3 +1,0 @@
-/home/bens/Desktop/github/Linux_MTA/Assignment#2/build/CMakeFiles/ourProj.dir
-/home/bens/Desktop/github/Linux_MTA/Assignment#2/build/CMakeFiles/edit_cache.dir
-/home/bens/Desktop/github/Linux_MTA/Assignment#2/build/CMakeFiles/rebuild_cache.dir
