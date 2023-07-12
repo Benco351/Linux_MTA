@@ -26,6 +26,8 @@
 #define MISSION1 1
 #define MISSION2 2
 #define MISSION3 3
+#define SUCCESS 0
+#define FINISH 1
 
 typedef struct flightData
 {
@@ -76,14 +78,16 @@ void printMenu();
 bool isValidChar(char input);
 char** readInput(int* size, int choice);
 //////////////////////////////Child Functions//////////////////////////////
-void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB* dataBase);
+void prepareToUnzip();
+void prepareToZip();
+void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB** dataBase);
 void loadDatabase(int numOfArgs, char* airports[]);
 char** printFlightsToAirport(char* airportName, DB* db, int* logSize, int mission);
 char* printFlightsData(FlightData object, int mission);
 void runRequestOnDB(char* parameters[], int numOfParameters, DB* db, int pipeToParent[2], int mission);
 char* compareFlights(DB* db, int *a, int *d, int airport);
 void findAirCrafts(char** aircraft, int nofAirCrafts, DB* db, char*** output, int* logSize, int* phySize);
-void reRunScript(DB* db);
+DB* reRunScript(DB* dataBase);
 //////////////////////////////ZIP functions//////////////////////////////////////////////
 void addFileToZip(struct zip* archive, const char* filePath, const char* entryName);
 void addFolderToZip(struct zip* archive, const char* folderPath, const char* baseDir);

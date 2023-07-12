@@ -1,41 +1,62 @@
 #include "Utilities.h"
 
 //////////////////////////////Data Base Functions//////////////////////////////
-//The equivalent of howManyRows.
+//Counts file's num of rows.
 int checkRows(FILE* file)
 {
-    int counter = 0;
-    char input;
+    int counter = 0, debug = 0;
+    char input, line[MAX_SIZE];
 
-
-    for (input = getc(file); input != EOF; input = getc(file))
+    while (fgets(line, sizeof(line), file) != NULL) 
     {
-        if (input == '\n')
-            counter++;
+        counter++;
     }
 
     fseek(file, 0, SEEK_SET);
-
-    return (counter);
+    return (counter - 1);
 }
 
 //free Data base
-void freeDataBase(DB* db)
+void freeDataBase(DB* DataBase)
 {
-    for (int i = 0; i < db->nofAirports; i++) {
-        free(db->airPortsNames[i]);
-    }
-
-    if (db->nofAirports > 0)
-        free(db->airPortsNames);
-
-    for (int i = 0; i < db->nofAirports; i++)
+    if (DataBase == NULL)
     {
-        free(db->airPortsArr[i].arrivals);
-        free(db->airPortsArr[i].Departures);
+        return; // No object to free
     }
 
-    free(db);
+    // Free the airports names array
+    if (DataBase->airPortsNames != NULL)
+    {
+        for (int i = 0; i < DataBase->nofAirports; i++)
+        {
+            free(DataBase->airPortsNames[i]);
+        }
+
+        free(DataBase->airPortsNames);
+    }
+
+    // Free the flights data for each airport
+    if (DataBase->airPortsArr != NULL)
+    {
+        for (int q = 0; q < DataBase->nofAirports; q++)
+        {
+            // Free arrivals
+            if (DataBase->airPortsArr[q].arrivals != NULL)
+            {
+                free(DataBase->airPortsArr[q].arrivals);
+            }
+            
+            // Free departures
+            if (DataBase->airPortsArr[q].Departures != NULL)
+            {
+                free(DataBase->airPortsArr[q].Departures);
+            }
+        }
+        free(DataBase->airPortsArr);
+    }
+
+    // Free the DB object itself
+    free(DataBase);
 }
 
 //build database
@@ -47,9 +68,7 @@ DB* getDataBase(int numOfArgs, char* airports[])
     DataBase->airPortsArr = (AirPorts*)malloc(sizeof(AirPorts) * numOfArgs);
     checkAllocation(DataBase->airPortsArr);
 
-    //reorder airports names
     DataBase->airPortsNames = reorderStringArray(numOfArgs, airports);
-    //get the database for each airport
     for (int q = 0; q < numOfArgs; q++)
     {
         FILE* arrivalsFile, * departuresFile;
@@ -78,7 +97,6 @@ DB* getDataBase(int numOfArgs, char* airports[])
             DataBase->airPortsArr[q].arrivals[i] = splitS(arrivals);
             DataBase->airPortsArr[q].arrivals[i].arrivalOrDeparture = ARRIVAL;
         }
-
         for (int i = 0; i < (DataBase->airPortsArr[q].SizeDepartures); i++)
         {
             fgets(departures, MAX_SIZE, departuresFile);
@@ -89,7 +107,6 @@ DB* getDataBase(int numOfArgs, char* airports[])
         fclose(arrivalsFile);
         fclose(departuresFile);
     }
-    
     return DataBase;
 }
 
@@ -98,7 +115,8 @@ char** reorderStringArray(int numOfArgs, char* airports[])
     // Create a new array to store the reordered strings
     char** reordered = (char**)malloc(numOfArgs * sizeof(char*));
     checkAllocation(reordered);
-    for (int i = 0; i < numOfArgs; i++) {
+    for (int i = 0; i < numOfArgs; i++)
+    {
         reordered[i] = (char*)malloc((strlen(airports[i]) + 1) * sizeof(char));
         checkAllocation(reordered[i]);
         strcpy(reordered[i], airports[i]);
@@ -107,7 +125,6 @@ char** reorderStringArray(int numOfArgs, char* airports[])
 
     return reordered;
 }
-
 //////////////////////////////General Functions//////////////////////////////
 bool doesZipExists()
 {
@@ -158,16 +175,26 @@ int compareStrings(const void* a, const void* b)
 
 void ReadOrWriteToPipe(char** output, int O_size, int pipe[2], bool SIG)
 {
-    int currentStrSize = 0;
+    int currentStrSize = 0, bytesCounter = 0;
 
-    if (SIG == READ)//read
+    if (SIG == READ) //read
     {
         for (int i = 0; i < O_size; i++)
         {
-            read(pipe[0], &currentStrSize, sizeof(int));
+            bytesCounter = read(pipe[0], &currentStrSize, sizeof(int));
+            while (bytesCounter != sizeof(int))
+            {
+                bytesCounter += read(pipe[0], &currentStrSize, sizeof(int));
+            }
+
             output[i] = (char*)malloc(sizeof(char) * (currentStrSize + 1));
             checkAllocation(output[i]);
-            read(pipe[0], output[i], currentStrSize);
+
+            bytesCounter = read(pipe[0], output[i], currentStrSize);
+            while (bytesCounter != currentStrSize)
+            {
+                bytesCounter += read(pipe[0], output[i], currentStrSize);
+            }
             output[i][currentStrSize] = '\0';
         }
     }
@@ -176,28 +203,43 @@ void ReadOrWriteToPipe(char** output, int O_size, int pipe[2], bool SIG)
         for (int i = 0; i < O_size; i++)
         {
             currentStrSize = (int)strlen(output[i]);
-            write(pipe[1], &currentStrSize, sizeof(int));
-            write(pipe[1], output[i], currentStrSize);
+            bytesCounter = write(pipe[1], &currentStrSize, sizeof(int));
+            while (bytesCounter != sizeof(int))
+            {
+                bytesCounter += write(pipe[1], &currentStrSize, sizeof(int));
+            }
+
+            bytesCounter = write(pipe[1], output[i], currentStrSize);
+            while (bytesCounter != currentStrSize)
+            {
+                bytesCounter += write(pipe[1], output[i], currentStrSize);
+            }
             output[i][currentStrSize] = '\0';
         }
     }
 }
 
-void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB* dataBase)
+void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB** dataBase)
 {
-    int arrSize = 0, exitCode;
+    int arrSize = 0, exitCode, result = 0, bytesCounter = 0;
     char** output = NULL;
     pid_t childId;
-    char cwd[PATH_MAX];
-    int result = 0;
+    DB* newDB = NULL;
+    char cwd[MAX_SIZE];
 
     if (number >= 1 && number <= 3)
     {
-        read(pipeToChild[0], &arrSize, sizeof(int));
+        bytesCounter = read(pipeToChild[0], &arrSize, sizeof(int));
+        while (bytesCounter != sizeof(int))
+        {
+            bytesCounter += read(pipeToChild[0], &arrSize, sizeof(int));
+        }
+
         output = (char**)malloc(sizeof(char*) * arrSize);
         checkAllocation(output);
+
         ReadOrWriteToPipe(output, arrSize, pipeToChild, READ);
-        runRequestOnDB(output, arrSize, dataBase, pipeToParent, number);
+        runRequestOnDB(output, arrSize, *dataBase, pipeToParent, number);
 
         for (int i = 0; i < arrSize; i++)
         {
@@ -208,97 +250,119 @@ void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB* data
             free(output);
     }
 
-    switch(number)
+    switch (number)
     {
         case 4:
-            reRunScript(dataBase);
+            newDB = reRunScript(*dataBase);
+            freeDataBase(*dataBase);
+            *dataBase = newDB;
+            result = FINISH;
+            bytesCounter = write(pipeToParent[1], &result, sizeof(result));
+            while (bytesCounter != sizeof(result))
+            {
+                bytesCounter += write(pipeToParent[1], &result, sizeof(result));
+            }
             break;
         case 5:
-            if (getcwd(cwd, sizeof(cwd)) != NULL) {
-                int size = strlen(cwd);
-                cwd[size - 6] ='\0';
-                char tmp[PATH_MAX];
-                strcpy(tmp,cwd);
-                strcat(tmp,"/flightsDB.zip");
-                strcat(cwd,"/flightsDB");
-                 bool DBFolderExists= doesDBFolderExists();
-                if(DBFolderExists)
-                {
-                    result = zipFolder(cwd, tmp);
-                }
-                else
-                {
-                    result = 1;
-                }
-                write(pipeToParent[1],&result,sizeof(result));      
+            prepareToZip();
+            result = FINISH;
+            bytesCounter = write(pipeToParent[1], &result, sizeof(result));
+            while (bytesCounter != sizeof(result))
+            {
+                bytesCounter += write(pipeToParent[1], &result, sizeof(result));
             }
-             
             break;
         case 6:
             childId = getpid();
-            write(pipeToParent[1], &childId, sizeof(childId));
+            bytesCounter = write(pipeToParent[1], &childId, sizeof(childId));
+            while (bytesCounter != sizeof(childId))
+            {
+                bytesCounter += write(pipeToParent[1], &childId, sizeof(childId));
+            }
             break;
         case 7:
+            exitCode = EXIT_SUCCESS;
+            childId = getpid();
+
+            bytesCounter = write(pipeToParent[1], &childId, sizeof(childId));
+            while (bytesCounter != sizeof(childId))
             {
-             
-                exitCode = EXIT_SUCCESS;
-                childId = getpid();
-                write(pipeToParent[1], &childId, sizeof(childId));
-                write(pipeToParent[1], &exitCode, sizeof(exitCode));
-                freeDataBase(dataBase);
+                bytesCounter += write(pipeToParent[1], &childId, sizeof(childId));
             }
+
+            bytesCounter = write(pipeToParent[1], &exitCode, sizeof(exitCode));
+            while (bytesCounter != sizeof(exitCode))
+            {
+                bytesCounter += write(pipeToParent[1], &exitCode, sizeof(exitCode));
+            }
+
+            freeDataBase(*dataBase);
+            close(pipeToChild[READ]);
+            close(pipeToParent[WRITE]);
+            exit(EXIT_SUCCESS);
+            break;
         default:
             break;
     }
 }
 
+void prepareToZip()
+{
+    char tmp[MAX_SIZE], cwd[MAX_SIZE];
+    int size = 0;
+    if (getcwd(cwd, sizeof(cwd)) != NULL)
+    {
+        int size = strlen(cwd);
+        cwd[size - 6] = '\0';
+        strcpy(tmp,cwd);
+        strcat(tmp,"/flightsDB.zip");
+        strcat(cwd,"/flightsDB");
+        bool DBFolderExists = doesDBFolderExists();
+
+        if (DBFolderExists)
+        {
+            (void)zipFolder(cwd, tmp);
+        }  
+    }
+}
+
+void prepareToUnzip()
+{
+    char cwd[MAX_SIZE], tmp[MAX_SIZE];
+    getcwd(cwd, sizeof(cwd));
+    int size = strlen(cwd);
+    cwd[size - 6] = '\0';
+    strcpy(tmp, cwd);
+    strcat(tmp, "/flightsDB.zip");
+    strcat(cwd, "/flightsDB");
+    bool DBFolderExists = doesDBFolderExists();
+
+    if (!DBFolderExists)
+    {
+        mkdir(cwd,0777);
+    }
+
+    bool zipExists = doesZipExists();
+    if (zipExists)
+    {  
+        if (cwd != NULL)
+        {
+            (void)unzipFolder(tmp, cwd);
+        }
+    }
+}
+
 void graceful_exit_handler(int signum)
 {
-          
-    char tmp[PATH_MAX];
-    char cwd[PATH_MAX];
-    int size=0;
-    if (signum == SIGUSR1)
-    {
-        printf("Graceful exit signal received\n");
-        if (getcwd(cwd, sizeof(cwd)) != NULL) {
-            int size = strlen(cwd);
-            cwd[size - 6] ='\0';
-            strcpy(tmp,cwd);
-            strcat(tmp,"/flightsDB.zip");
-            strcat(cwd,"/flightsDB");
-            bool DBFolderExists= doesDBFolderExists();
-            if(DBFolderExists)
-            {
-                (void)zipFolder(cwd, tmp);
-            }  
-        }
-        exit(0);
-    }
+    printf("\nGraceful exit signal received.\n");
+    prepareToZip();
+    exit(SUCCESS);
 }
 
 void sigint_handler(int signum)
 {
-    char tmp[PATH_MAX];
-    char cwd[PATH_MAX];
-    int size=0;
-    if (signum == SIGINT)
-    {
-        printf("\nCTRL+C signal received\n");
-        if (getcwd(cwd, sizeof(cwd)) != NULL) {
-            int size = strlen(cwd);
-            cwd[size - 6] ='\0';
-            strcpy(tmp,cwd);
-            strcat(tmp,"/flightsDB.zip");
-            strcat(cwd,"/flightsDB");
-            bool DBFolderExists= doesDBFolderExists();
-            if(DBFolderExists)
-            {
-                (void)zipFolder(cwd, tmp);
-            }
-        }
-        kill(getpid(), SIGUSR1);
-    }
+    printf("\nCTRL+C signal received\n");
+    kill(getpid(), SIGUSR1);
 }
 
 void printMenu()
@@ -342,7 +406,6 @@ int quickSearch(char* arr[], int size, char* target) {
 FlightData splitS(char* str)
 {
     FlightData FD;
-
     strcpy(FD.icao24, strtok(str, ","));
     strcpy(FD.firstSeen, unix_time_to_date(strtok(NULL, ",")));
     strcpy(FD.departureAirPort, strtok(NULL, ","));
@@ -377,19 +440,30 @@ void openFilesByAirportName(char* airportName, FILE** departureFile, FILE** arri
 
 void loadDatabase(int numOfArgs, char* airports[]) //Loads database according to arguments.
 {
-    char command[MAX_SIZE] = "bash ../flightScanner.sh";
+    char workDir[MAX_SIZE], commandLine[MAX_SIZE], tempStr[MAX_SIZE];
+    strcpy(commandLine, "bash ");
+    getcwd(workDir, sizeof(workDir));
+    int size = strlen(workDir);
+    workDir[size - 6] = '\0';
+    strcpy(tempStr, workDir);
+    strcat(tempStr, "/flightScanner.sh");
+    strcat(commandLine, tempStr);
+
     for (int i = 0; i < numOfArgs; i++)
     {
-        strcat(command," ");
-        strcat(command,airports[i]);
+        strcat(commandLine, " ");
+        strcat(commandLine, airports[i]);
     }
 
-    system(command);
+    system(commandLine);
+    system("rm -rf ../flightsDB/");
+    system("mv flightsDB ..");
 }
 
 //this function gets and open file of specific airport, the aircraft searched for and their number
 //returns all flights for said aircraft in given airport
-char* unix_time_to_date(const char* timestamp_str) {
+char* unix_time_to_date(const char* timestamp_str)
+{
     time_t timestamp = atoi(timestamp_str);
     struct tm* timeinfo_local;
     struct tm* timeinfo_target;
@@ -397,7 +471,8 @@ char* unix_time_to_date(const char* timestamp_str) {
 
     // Convert Unix timestamp to struct tm in local timezone
     timeinfo_local = localtime(&timestamp);
-    if (timeinfo_local == NULL) {
+    if (timeinfo_local == NULL)
+    {
         fprintf(stderr, "localtime_r failed\n");
         return NULL;
     }
@@ -411,7 +486,8 @@ char* unix_time_to_date(const char* timestamp_str) {
     timeinfo_target = gmtime(&timestamp_target);
 
     // Format date string
-    if (strftime(buffer, 80, "%Y-%m-%d %H:%S:%M", timeinfo_target) == 0) {
+    if (strftime(buffer, 80, "%Y-%m-%d %H:%S:%M", timeinfo_target) == 0)
+    {
         fprintf(stderr, "strftime failed\n");
         return NULL;
     }
@@ -429,6 +505,7 @@ char** createDirList(int* size)
 
     DIR* directory = opendir("../flightsDB/");
     checkAllocation(directory);
+
 
     struct dirent* entry;
     while ((entry = readdir(directory)) != NULL)
@@ -452,10 +529,13 @@ char** createDirList(int* size)
         }
     }
 
-    output = (char**)realloc(output, logSize * sizeof(char*));
-    checkAllocation(output);
-    *size = logSize;
+    if (logSize > 0)
+    {
+        output = (char**)realloc(output, logSize * sizeof(char*));
+        checkAllocation(output);
+    }
 
+    *size = logSize;
     closedir(directory);
     return output;
 }
@@ -645,12 +725,13 @@ char** printFlightsToAirport(char* airportName, DB* db, int* logSize ,int missio
         }
 
     }
+    
     else if (j == -1)
     {
-        currStringSize = snprintf(NULL, 0, "\n%s does not exist in data base\n", airportName);
+        currStringSize = snprintf(NULL, 0, "%s does not exist in data base\n", airportName);
         output[*logSize] = (char*)malloc(currStringSize + 1);
         checkAllocation(output);
-        snprintf(output[*logSize], currStringSize + 1, "\n%s does not exist in data base\n", airportName);
+        snprintf(output[*logSize], currStringSize + 1, "%s does not exist in data base\n", airportName);
         (*logSize)++;
     }
 
@@ -718,14 +799,15 @@ char* printFlightsData(FlightData object, int mission)
 void runRequestOnDB(char* parameters[], int numOfParameters, DB* db, int pipeToParent[2], int mission)
 {
     char** buffer = NULL, **output = NULL;
-    int bufferLogSize = 0, bufferPhySize = MAX_SIZE;
-    int outputLogSize = 0;
+    int bufferLogSize = 0, bufferPhySize = MAX_SIZE, outputLogSize = 0, bytesCounter = 0;
     buffer = (char**)malloc(sizeof(char*) * MAX_SIZE);
     checkAllocation(buffer);
+
     if (mission == MISSION3)
     {
         findAirCrafts(parameters, numOfParameters, db, &buffer, &bufferLogSize, &bufferPhySize);
     }
+
     else
     {
         for (int i = 0; i < numOfParameters; i++)
@@ -747,13 +829,17 @@ void runRequestOnDB(char* parameters[], int numOfParameters, DB* db, int pipeToP
         }
     }
 
-    if(bufferLogSize < bufferPhySize)
+    if (bufferLogSize > 0 && bufferLogSize < bufferPhySize)
     {
         buffer = (char**)realloc(buffer, sizeof(char*) * bufferLogSize);
         checkAllocation(buffer);
     }
 
-    write(pipeToParent[1], &bufferLogSize, sizeof(int));
+    bytesCounter = write(pipeToParent[1], &bufferLogSize, sizeof(int));
+    while (bytesCounter != sizeof(int))
+    {
+        bytesCounter += write(pipeToParent[1], &bufferLogSize, sizeof(int));
+    }
     ReadOrWriteToPipe(buffer, bufferLogSize, pipeToParent, WRITE);
 
     for (int i = 0; i < bufferLogSize; i++)
@@ -833,62 +919,67 @@ void findAirCrafts(char** aircraft, int nofAirCrafts, DB* db, char*** output, in
     }
 }
 //////////////////////////////Q4 Functions//////////////////////////////
-void reRunScript(DB* db)
+DB* reRunScript(DB* dataBase) //Re-runs the script and creates a new DB.
 {
-    char** APnames = db->airPortsNames;
-    int size = db->nofAirports;
-    freeDataBase(db);
-    db=NULL;
-    int sizeOfDirList = 0;
-    char** dirList = createDirList(&sizeOfDirList);
-    loadDatabase(sizeOfDirList,dirList);
-    for (int i = 0; i < sizeOfDirList; i++)
-    {
-        free(dirList[i]);
-    }
-    free(dirList);
-    db = (DB*)malloc(sizeof(DB));
-    db = getDataBase(size, APnames);
+    DB* output = NULL;
+    char** airports = dataBase->airPortsNames;
+    int numOfAirPorts = dataBase->nofAirports;
+    
+    loadDatabase(numOfAirPorts, airports);
+    output = getDataBase(numOfAirPorts, airports);
+
+    return output;
 }
 /////////////////////////////////////ZIP Functions//////////////////////////////////
 
-void addFileToZip(struct zip* archive, const char* filePath, const char* entryName) {
+void addFileToZip(struct zip* archive, const char* filePath, const char* entryName)
+{
     struct zip_source* source = zip_source_file_create(filePath, 0, -1, 0);
-    if (!source) {
+    if (!source) 
+    {
         return;
     } 
 
     int result = zip_add(archive, entryName, source);
-    if (result < 0) {
+    if (result < 0) 
+    {
       zip_source_free(source);
     }
 
 }
 
-void addFolderToZip(struct zip* archive, const char* folderPath, const char* baseDir) {
+void addFolderToZip(struct zip* archive, const char* folderPath, const char* baseDir)
+{
     DIR* dir;
     struct dirent* entry;
-    char filePath[PATH_MAX];
+    char filePath[MAX_SIZE];
 
     dir = opendir(folderPath);
-    if (!dir) {
+    if (!dir) 
+    {
         return;
     }
 
-    while ((entry = readdir(dir)) != NULL) {
+    while ((entry = readdir(dir)) != NULL)
+    {
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
             continue;
 
         snprintf(filePath, sizeof(filePath), "%s/%s", folderPath, entry->d_name);
 
         struct stat fileStat;
-        if (stat(filePath, &fileStat) == 0) {
-            if (S_ISREG(fileStat.st_mode)) {
-                char entryName[PATH_MAX];
+        if (stat(filePath, &fileStat) == 0)
+        {
+            if (S_ISREG(fileStat.st_mode))
+            {
+                char entryName[MAX_SIZE];
                 snprintf(entryName, sizeof(entryName), "%s%s%s", baseDir, (baseDir[strlen(baseDir) - 1] == '/') ? "" : "/", entry->d_name);
                 addFileToZip(archive, filePath, entryName);
-            } else if (S_ISDIR(fileStat.st_mode)) {
-                char subFolderBaseDir[PATH_MAX];
+            }
+            
+            else if (S_ISDIR(fileStat.st_mode))
+            {
+                char subFolderBaseDir[MAX_SIZE];
                 snprintf(subFolderBaseDir, sizeof(subFolderBaseDir), "%s%s%s", baseDir, (baseDir[strlen(baseDir) - 1] == '/') ? "" : "/", entry->d_name);
                 addFolderToZip(archive, filePath, subFolderBaseDir);
             }
@@ -919,51 +1010,59 @@ int zipFolder(const char* folderPath, const char* zipFilePath)
 
 //-----------------------------------
 //UNZIP FUNCTION
-
 //------------------------------------
-int unzipFolder(const char* zipFilePath, const char* destinationFolder) {
+int unzipFolder(const char* zipFilePath, const char* destinationFolder)
+{
     struct zip* archive = zip_open(zipFilePath, 0, NULL);
-    if (!archive) {
+    if (!archive)
+    {
         return 1;
     }
 
     mkdir(destinationFolder, S_IRWXU | S_IRWXG | S_IRWXO);
 
     int numEntries = zip_get_num_entries(archive, 0);
-    for (int i = 0; i < numEntries; i++) {
+    for (int i = 0; i < numEntries; i++)
+    {
         struct zip_stat entryStat;
-        if (zip_stat_index(archive, i, 0, &entryStat) == 0) {
-            if (entryStat.name[strlen(entryStat.name) - 1] == '/') {
+        if (zip_stat_index(archive, i, 0, &entryStat) == 0)
+        {
+            if (entryStat.name[strlen(entryStat.name) - 1] == '/')
+            {
                 // Skip directories
                 continue;
             }
 
-            char entryName[PATH_MAX];
+            char entryName[MAX_SIZE];
             snprintf(entryName, sizeof(entryName), "%s%s%s", destinationFolder, (destinationFolder[strlen(destinationFolder) - 1] == '/') ? "" : "/", entryStat.name);
 
             struct zip_file* file = zip_fopen_index(archive, i, 0);
-            if (!file) {
+            if (!file)
+            {
                 continue;
             }
 
             // Create directory if it doesn't exist
-            char dirName[PATH_MAX];
+            char dirName[MAX_SIZE];
             strncpy(dirName, entryName, sizeof(dirName));
             char* lastSlash = strrchr(dirName, '/');
-            if (lastSlash) {
+            if (lastSlash)
+            {
                 *lastSlash = '\0';
                 mkdir(dirName, 0777);
             }
 
             FILE* outputFile = fopen(entryName, "wb");
-            if (!outputFile) {
+            if (!outputFile)
+            {
                 zip_fclose(file);
                 continue;
             }
 
             char buffer[4096];
             zip_int64_t bytesRead;
-            while ((bytesRead = zip_fread(file, buffer, sizeof(buffer))) > 0) {
+            while ((bytesRead = zip_fread(file, buffer, sizeof(buffer))) > 0)
+            {
                 fwrite(buffer, 1, bytesRead, outputFile);
             }
 
@@ -981,20 +1080,29 @@ int unzipFolder(const char* zipFilePath, const char* destinationFolder) {
     return 0;
 }
 
-void removeDirectory(const char* path) {
+void removeDirectory(const char* path)
+{
     DIR* directory = opendir(path);
     struct dirent* item;
 
-    if (directory != NULL) {
-        while ((item = readdir(directory)) != NULL) {
-            if (strcmp(item->d_name, ".") != 0 && strcmp(item->d_name, "..") != 0) {
+    if (directory != NULL)
+    {
+        while ((item = readdir(directory)) != NULL)
+        {
+            if (strcmp(item->d_name, ".") != 0 && strcmp(item->d_name, "..") != 0)
+            {
                 char itemPath[1024];
                 snprintf(itemPath, sizeof(itemPath), "%s/%s", path, item->d_name);
                 struct stat statbuf;
-                if (stat(itemPath, &statbuf) == 0) {
-                    if (S_ISDIR(statbuf.st_mode)) {
+                if (stat(itemPath, &statbuf) == 0)
+                {
+                    if (S_ISDIR(statbuf.st_mode))
+                    {
                         removeDirectory(itemPath);
-                    } else {
+                    }
+                    
+                    else
+                    {
                         remove(itemPath);
                     }
                 }

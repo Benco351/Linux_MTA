@@ -5,7 +5,7 @@ Location=$(pwd);
 #function that handle a Terminal.
 handleTerminal()
 {
-    echo -e "\n\nretrieving $1 flights information...";
+    echo "retrieving $1 flights information...";
     if [ ! -d "$Location/flightsDB" ]; then
         mkdir flightsDB;
         cd flightsDB/;
@@ -78,4 +78,3 @@ for ICOA in "$@"
 do
     handleTerminal $ICOA
 done
-echo -e "Successfully updated the DB.\n"
