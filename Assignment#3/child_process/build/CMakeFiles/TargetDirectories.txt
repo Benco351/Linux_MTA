@@ -1,3 +1,0 @@
-/home/parallels/Linux_MTA/Assignment#3/child_process/build/CMakeFiles/DBService.dir
-/home/parallels/Linux_MTA/Assignment#3/child_process/build/CMakeFiles/edit_cache.dir
-/home/parallels/Linux_MTA/Assignment#3/child_process/build/CMakeFiles/rebuild_cache.dir

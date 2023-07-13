@@ -1,1 +1,0 @@
-/usr/bin/aarch64-linux-gnu-gcc-12 -g CMakeFiles/DBService.dir/dbService.c.o CMakeFiles/DBService.dir/Utilities.c.o -o DBService  /usr/lib/aarch64-linux-gnu/libzip.so -lrt 

@@ -1,0 +1,3 @@
+/home/parallels/Assignment#3/FlightsService/build/CMakeFiles/FlightService.dir
+/home/parallels/Assignment#3/FlightsService/build/CMakeFiles/edit_cache.dir
+/home/parallels/Assignment#3/FlightsService/build/CMakeFiles/rebuild_cache.dir
