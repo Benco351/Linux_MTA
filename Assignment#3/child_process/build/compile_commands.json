@@ -1,0 +1,12 @@
+[
+{
+  "directory": "/home/parallels/Linux_MTA/Assignment#3/child_process/build",
+  "command": "/usr/bin/aarch64-linux-gnu-gcc-12  -I\"/home/parallels/Linux_MTA/Assignment#3/child_process\" -g -o CMakeFiles/DBService.dir/dbService.c.o -c \"/home/parallels/Linux_MTA/Assignment#3/child_process/dbService.c\"",
+  "file": "/home/parallels/Linux_MTA/Assignment#3/child_process/dbService.c"
+},
+{
+  "directory": "/home/parallels/Linux_MTA/Assignment#3/child_process/build",
+  "command": "/usr/bin/aarch64-linux-gnu-gcc-12  -I\"/home/parallels/Linux_MTA/Assignment#3/child_process\" -g -o CMakeFiles/DBService.dir/Utilities.c.o -c \"/home/parallels/Linux_MTA/Assignment#3/child_process/Utilities.c\"",
+  "file": "/home/parallels/Linux_MTA/Assignment#3/child_process/Utilities.c"
+}
+]

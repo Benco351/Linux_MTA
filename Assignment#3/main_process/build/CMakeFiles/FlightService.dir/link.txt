@@ -1,0 +1,1 @@
+/usr/bin/aarch64-linux-gnu-gcc -g CMakeFiles/FlightService.dir/FlightService.c.o CMakeFiles/FlightService.dir/Utilities.c.o -o FlightService  /usr/lib/aarch64-linux-gnu/libzip.so -lrt 

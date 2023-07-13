@@ -84,12 +84,19 @@ DB* getDataBase(int numOfArgs, char* airports[])
         fgets(firstRowA, MAX_SIZE, arrivalsFile);
         fgets(firstRowD, MAX_SIZE, departuresFile);
 
-        DataBase->airPortsArr[q].arrivals = (FlightData*)malloc(sizeof(FlightData) *
-                                                                (DataBase->airPortsArr[q].SizeArrivals));
-        DataBase->airPortsArr[q].Departures = (FlightData*)malloc(sizeof(FlightData) *
-                                                                  (DataBase->airPortsArr[q].SizeDepartures));
-        checkAllocation(DataBase->airPortsArr[q].arrivals);
-        checkAllocation(DataBase->airPortsArr[q].Departures);
+        if (DataBase->airPortsArr[q].SizeDepartures >  0)
+        {
+            DataBase->airPortsArr[q].Departures = (FlightData*)malloc(sizeof(FlightData) *
+            (DataBase->airPortsArr[q].SizeDepartures));
+            checkAllocation(DataBase->airPortsArr[q].Departures);
+        }
+
+        if (DataBase->airPortsArr[q].SizeArrivals > 0)
+        {
+            DataBase->airPortsArr[q].arrivals = (FlightData*)malloc(sizeof(FlightData) *
+            (DataBase->airPortsArr[q].SizeArrivals));
+            checkAllocation(DataBase->airPortsArr[q].arrivals);
+        }
 
         for (int i = 0; i < DataBase->airPortsArr[q].SizeArrivals; i++)
         {
@@ -173,73 +180,73 @@ int compareStrings(const void* a, const void* b)
     return strcmp(*str1, *str2);
 }
 
-void ReadOrWriteToPipe(char** output, int O_size, int pipe[2], bool SIG)
+void ReadOrWriteToPipe(char** output, int O_size, int fd, bool SIG)
 {
     int currentStrSize = 0, bytesCounter = 0;
 
-    if (SIG == READ) //read
+    if (SIG == READ)
     {
         for (int i = 0; i < O_size; i++)
         {
-            bytesCounter = read(pipe[0], &currentStrSize, sizeof(int));
+            bytesCounter = read(fd, &currentStrSize, sizeof(int));
             while (bytesCounter != sizeof(int))
             {
-                bytesCounter += read(pipe[0], &currentStrSize, sizeof(int));
+                bytesCounter += read(fd, &currentStrSize, sizeof(int));
             }
 
             output[i] = (char*)malloc(sizeof(char) * (currentStrSize + 1));
             checkAllocation(output[i]);
 
-            bytesCounter = read(pipe[0], output[i], currentStrSize);
+            bytesCounter = read(fd, output[i], currentStrSize);
             while (bytesCounter != currentStrSize)
             {
-                bytesCounter += read(pipe[0], output[i], currentStrSize);
+                bytesCounter += read(fd, output[i], currentStrSize);
             }
             output[i][currentStrSize] = '\0';
         }
     }
-    else // write
+
+    else
     {
         for (int i = 0; i < O_size; i++)
         {
             currentStrSize = (int)strlen(output[i]);
-            bytesCounter = write(pipe[1], &currentStrSize, sizeof(int));
-            while (bytesCounter != sizeof(int))
+            bytesCounter = write(fd, &currentStrSize, sizeof(currentStrSize));
+            while (bytesCounter != sizeof(currentStrSize))
             {
-                bytesCounter += write(pipe[1], &currentStrSize, sizeof(int));
+                bytesCounter += write(fd, &currentStrSize, sizeof(currentStrSize));
             }
 
-            bytesCounter = write(pipe[1], output[i], currentStrSize);
+            bytesCounter = write(fd, output[i], currentStrSize);
             while (bytesCounter != currentStrSize)
             {
-                bytesCounter += write(pipe[1], output[i], currentStrSize);
+                bytesCounter += write(fd, output[i], currentStrSize);
             }
             output[i][currentStrSize] = '\0';
         }
     }
 }
 
-void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB** dataBase)
+void child_process(int fd, int Opcode, DB** dataBase)
 {
     int arrSize = 0, exitCode, result = 0, bytesCounter = 0;
     char** output = NULL;
     pid_t childId;
     DB* newDB = NULL;
-    char cwd[MAX_SIZE];
 
-    if (number >= 1 && number <= 3)
+    if (Opcode >= 2 && Opcode <= 4)
     {
-        bytesCounter = read(pipeToChild[0], &arrSize, sizeof(int));
+        bytesCounter = read(fd, &arrSize, sizeof(int));
         while (bytesCounter != sizeof(int))
         {
-            bytesCounter += read(pipeToChild[0], &arrSize, sizeof(int));
+            bytesCounter += read(fd, &arrSize, sizeof(int));
         }
 
         output = (char**)malloc(sizeof(char*) * arrSize);
         checkAllocation(output);
-
-        ReadOrWriteToPipe(output, arrSize, pipeToChild, READ);
-        runRequestOnDB(output, arrSize, *dataBase, pipeToParent, number);
+        
+        ReadOrWriteToPipe(output, arrSize, fd, READ);
+        runRequestOnDB(output, arrSize, *dataBase, fd, Opcode);
 
         for (int i = 0; i < arrSize; i++)
         {
@@ -250,56 +257,38 @@ void child_process(int pipeToChild[2], int pipeToParent[2], int number, DB** dat
             free(output);
     }
 
-    switch (number)
+    switch (Opcode)
     {
-        case 4:
-            newDB = reRunScript(*dataBase);
+        case 1:
+            newDB = reRunScript(*dataBase, fd);
             freeDataBase(*dataBase);
             *dataBase = newDB;
             result = FINISH;
-            bytesCounter = write(pipeToParent[1], &result, sizeof(result));
+            bytesCounter = write(fd, &result, sizeof(result));
             while (bytesCounter != sizeof(result))
             {
-                bytesCounter += write(pipeToParent[1], &result, sizeof(result));
+                bytesCounter += write(fd, &result, sizeof(result));
             }
             break;
         case 5:
             prepareToZip();
             result = FINISH;
-            bytesCounter = write(pipeToParent[1], &result, sizeof(result));
+            bytesCounter = write(fd, &result, sizeof(result));
             while (bytesCounter != sizeof(result))
             {
-                bytesCounter += write(pipeToParent[1], &result, sizeof(result));
+                bytesCounter += write(fd, &result, sizeof(result));
             }
             break;
         case 6:
-            childId = getpid();
-            bytesCounter = write(pipeToParent[1], &childId, sizeof(childId));
-            while (bytesCounter != sizeof(childId))
-            {
-                bytesCounter += write(pipeToParent[1], &childId, sizeof(childId));
-            }
-            break;
-        case 7:
             exitCode = EXIT_SUCCESS;
-            childId = getpid();
-
-            bytesCounter = write(pipeToParent[1], &childId, sizeof(childId));
-            while (bytesCounter != sizeof(childId))
-            {
-                bytesCounter += write(pipeToParent[1], &childId, sizeof(childId));
-            }
-
-            bytesCounter = write(pipeToParent[1], &exitCode, sizeof(exitCode));
+            bytesCounter = write(fd, &exitCode, sizeof(exitCode));
             while (bytesCounter != sizeof(exitCode))
             {
-                bytesCounter += write(pipeToParent[1], &exitCode, sizeof(exitCode));
+                bytesCounter += write(fd, &exitCode, sizeof(exitCode));
             }
 
             freeDataBase(*dataBase);
-            close(pipeToChild[READ]);
-            close(pipeToParent[WRITE]);
-            exit(EXIT_SUCCESS);
+            close(fd);
             break;
         default:
             break;
@@ -352,31 +341,6 @@ void prepareToUnzip()
     }
 }
 
-void graceful_exit_handler(int signum)
-{
-    printf("\nGraceful exit signal received.\n");
-    prepareToZip();
-    exit(SUCCESS);
-}
-
-void sigint_handler(int signum)
-{
-    printf("\nCTRL+C signal received\n");
-    kill(getpid(), SIGUSR1);
-}
-
-void printMenu()
-{
-    printf("Menu:\n");
-    printf("1. Receive airports ICOA code names and output all arrival flights and flight details.\n");
-    printf("2. Receive airports name and output the full airport schedule (departures and arrivals) ordered by time.\n");
-    printf("3. Receive list of aircraft names (icao24) and output all flights (departures and arrivals) that it has made.\n");
-    printf("4. Update the existing airports in the DB with recent data (rerun BASH script).\n");
-    printf("5. Zip the DB files.\n");
-    printf("6. Get child process's ID.\n");
-    printf("7. Graceful exit - child shall zip the DB files and terminate.\n");
-    printf("Enter your choice (1-7): ");
-}
 
 //this is a search function to find the needed airport
 int quickSearch(char* arr[], int size, char* target) {
@@ -419,7 +383,10 @@ FlightData splitS(char* str)
 void checkAllocation(void* pointer)
 {
     if (pointer == NULL)
+    {
+        printf("Memory allocation failed. Exiting program...\n");
         exit(-1);
+    }
 }
 
 void openFilesByAirportName(char* airportName, FILE** departureFile, FILE** arrivalFile) //Opens an airport's database.
@@ -456,6 +423,7 @@ void loadDatabase(int numOfArgs, char* airports[]) //Loads database according to
     }
 
     system(commandLine);
+    sleep(5);
     system("rm -rf ../flightsDB/");
     system("mv flightsDB ..");
 }
@@ -506,7 +474,6 @@ char** createDirList(int* size)
     DIR* directory = opendir("../flightsDB/");
     checkAllocation(directory);
 
-
     struct dirent* entry;
     while ((entry = readdir(directory)) != NULL)
     {
@@ -540,142 +507,6 @@ char** createDirList(int* size)
     return output;
 }
 
-bool isValidChar(char input)
-{
-    return (input == ',' || input == '\n'|| (input >= 65 && input <= 122) || (input >= 48 && input <= 57));
-}
-
-char** readInput(int* size, int choice)
-{
-    int arrLogSize = 0, arrPhySize = 0, currentStringLogSize = 0, currentStringPhySize = 0;
-    char** output = NULL;
-
-    printf("Please enter desired input seperated by a single comma (,).\n"
-           "For example: LLBG,LLTK\n\n");
-
-    char input = (char)getchar();
-
-    if (input == '\n') //case of previous buffer.
-    {
-        input = (char)getchar();
-    }
-
-    while (input != '\n')
-    {
-        while (!isValidChar(input))
-        {
-            input = (char)getchar();
-        }
-
-        if (input >= 97 && choice != 3)
-        {
-            input -= 32;
-        }
-
-        if (input == ',' || input == '\n')
-        {
-            if (currentStringLogSize == currentStringPhySize)
-            {
-                currentStringPhySize += 1;
-                output[arrLogSize] = (char*)realloc(output[arrLogSize], currentStringPhySize * sizeof(char*));
-                checkAllocation(output[arrLogSize]);
-            }
-
-            else if (currentStringLogSize + 1 < currentStringPhySize)
-            {
-                currentStringPhySize = currentStringLogSize + 1;
-                output[arrLogSize] = (char*)realloc(output[arrLogSize], currentStringPhySize * sizeof(char*));
-                checkAllocation(output[arrLogSize]);
-            }
-
-            output[arrLogSize][currentStringLogSize] = '\0';
-            arrLogSize++;
-            currentStringLogSize = 0;
-            currentStringPhySize = 0;
-
-            if (input == ',')
-            {
-                input = (char)getchar();
-            }
-            continue;
-        }
-
-        if (arrLogSize == arrPhySize)
-        {
-            if (arrPhySize == 0)
-            {
-                arrPhySize += 1;
-                output = (char**)malloc(sizeof(char*));
-            }
-
-            else
-            {
-                arrPhySize *= 2;
-                output = (char**)realloc(output, arrPhySize * sizeof(char*));
-            }
-
-            checkAllocation(output);
-        }
-
-        if (currentStringLogSize == currentStringPhySize)
-        {
-            if (currentStringPhySize == 0)
-            {
-                currentStringPhySize += 4;
-                output[arrLogSize] = (char*)malloc(sizeof(char) * currentStringPhySize);
-                checkAllocation(output[arrLogSize]);
-            }
-
-            else if (currentStringPhySize > 0)
-            {
-                currentStringPhySize *= 2;
-                output[arrLogSize] = (char*)realloc(output[arrLogSize], currentStringPhySize * sizeof(char*));
-                checkAllocation(output[arrLogSize]);
-            }
-        }
-
-        output[arrLogSize][currentStringLogSize] = input;
-        currentStringLogSize++;
-        input = (char)getchar();
-
-        if (input == ',' || input == '\n')
-        {
-            if (currentStringLogSize == currentStringPhySize)
-            {
-                currentStringPhySize += 1;
-                output[arrLogSize] = (char*)realloc(output[arrLogSize], currentStringPhySize * sizeof(char*));
-                checkAllocation(output[arrLogSize]);
-            }
-
-            else if (currentStringLogSize + 1 < currentStringPhySize)
-            {
-                currentStringPhySize = currentStringLogSize + 1;
-                output[arrLogSize] = (char*)realloc(output[arrLogSize], currentStringPhySize * sizeof(char*));
-                checkAllocation(output[arrLogSize]);
-            }
-
-            output[arrLogSize][currentStringLogSize] = '\0';
-            arrLogSize++;
-            currentStringLogSize = 0;
-            currentStringPhySize = 0;
-
-            if (input == ',')
-            {
-                input = (char)getchar();
-            }
-            continue;
-        }
-    }
-
-    if (arrPhySize > arrLogSize)
-    {
-        output = (char**)realloc(output, arrLogSize * sizeof(char*));
-        checkAllocation(output);
-    }
-
-    *size = arrLogSize;
-    return output;
-}
 //////////////////////////////Q1 Functions//////////////////////////////
 char** printFlightsToAirport(char* airportName, DB* db, int* logSize ,int mission) //Prints all flights details to airportName.
 {
@@ -796,7 +627,7 @@ char* printFlightsData(FlightData object, int mission)
     return output;
 }
 
-void runRequestOnDB(char* parameters[], int numOfParameters, DB* db, int pipeToParent[2], int mission)
+void runRequestOnDB(char* parameters[], int numOfParameters, DB* db, int fd, int mission)
 {
     char** buffer = NULL, **output = NULL;
     int bufferLogSize = 0, bufferPhySize = MAX_SIZE, outputLogSize = 0, bytesCounter = 0;
@@ -835,12 +666,12 @@ void runRequestOnDB(char* parameters[], int numOfParameters, DB* db, int pipeToP
         checkAllocation(buffer);
     }
 
-    bytesCounter = write(pipeToParent[1], &bufferLogSize, sizeof(int));
+    bytesCounter = write(fd, &bufferLogSize, sizeof(int));
     while (bytesCounter != sizeof(int))
     {
-        bytesCounter += write(pipeToParent[1], &bufferLogSize, sizeof(int));
+        bytesCounter += write(fd, &bufferLogSize, sizeof(int));
     }
-    ReadOrWriteToPipe(buffer, bufferLogSize, pipeToParent, WRITE);
+    ReadOrWriteToPipe(buffer, bufferLogSize, fd, WRITE);
 
     for (int i = 0; i < bufferLogSize; i++)
     {
@@ -919,14 +750,24 @@ void findAirCrafts(char** aircraft, int nofAirCrafts, DB* db, char*** output, in
     }
 }
 //////////////////////////////Q4 Functions//////////////////////////////
-DB* reRunScript(DB* dataBase) //Re-runs the script and creates a new DB.
+DB* reRunScript(DB* dataBase, int fd) //Re-runs the script and creates a new DB.
 {
     DB* output = NULL;
-    char** airports = dataBase->airPortsNames;
-    int numOfAirPorts = dataBase->nofAirports;
-    
-    loadDatabase(numOfAirPorts, airports);
-    output = getDataBase(numOfAirPorts, airports);
+    int BytesCounter = 0, nofAirports = 0, stringSize = 0;
+    char** airports = NULL;
+
+    BytesCounter = read(fd, &nofAirports, sizeof(int));
+    while (BytesCounter != sizeof(nofAirports))
+    {
+        BytesCounter += read(fd, &nofAirports, sizeof(int));
+    }
+
+    airports = (char**)malloc(nofAirports * sizeof(char*));
+    checkAllocation(airports);
+
+    ReadOrWriteToPipe(airports, nofAirports, fd, READ);
+    loadDatabase(nofAirports, airports);
+    output = getDataBase(nofAirports, airports);
 
     return output;
 }

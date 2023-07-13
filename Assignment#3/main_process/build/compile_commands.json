@@ -1,0 +1,12 @@
+[
+{
+  "directory": "/home/parallels/Linux_MTA/Assignment#3/main_process/build",
+  "command": "/usr/bin/aarch64-linux-gnu-gcc  -I\"/home/parallels/Linux_MTA/Assignment#3/main_process\" -g -o CMakeFiles/FlightService.dir/FlightService.c.o -c \"/home/parallels/Linux_MTA/Assignment#3/main_process/FlightService.c\"",
+  "file": "/home/parallels/Linux_MTA/Assignment#3/main_process/FlightService.c"
+},
+{
+  "directory": "/home/parallels/Linux_MTA/Assignment#3/main_process/build",
+  "command": "/usr/bin/aarch64-linux-gnu-gcc  -I\"/home/parallels/Linux_MTA/Assignment#3/main_process\" -g -o CMakeFiles/FlightService.dir/Utilities.c.o -c \"/home/parallels/Linux_MTA/Assignment#3/main_process/Utilities.c\"",
+  "file": "/home/parallels/Linux_MTA/Assignment#3/main_process/Utilities.c"
+}
+]
