@@ -72,7 +72,9 @@ char** readInput(int* size, int choice)
     int arrLogSize = 0, arrPhySize = 0, currentStringLogSize = 0, currentStringPhySize = 0;
     char** output = NULL;
 
-    printf("Please enter desired input seperated by a single space.\n"
+    choice == AIRCRAFT_SCHEDULE ? printf("Please enter desired aircraft number.\n"
+    "For example: 470ad4\n\n") :
+    printf("Please enter desired airports seperated by a single space.\n"
            "For example: LLBG LLTK\n\n");
 
     char input = (char)getchar();
