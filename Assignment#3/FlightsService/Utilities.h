@@ -23,6 +23,8 @@
 #define READ 0
 #define WRITE 1
 #define FINISH 1
+#define EMPTY_INPUT -1
+#define SCRIPT_FAILURE -2
 #define FETCH_DATA 1
 #define INCOMING_FLIGHTS 2
 #define FULL_SCHEDULE 3

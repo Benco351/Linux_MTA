@@ -28,6 +28,8 @@
 #define READ 0
 #define WRITE 1
 #define FINISH 1
+#define EMPTY_INPUT -1
+#define SCRIPT_FAILURE -2
 #define FETCH_DATA 1
 #define INCOMING_FLIGHTS 2
 #define FULL_SCHEDULE 3
@@ -78,7 +80,7 @@ void runRequestOnDB(char* parameters[], int numOfParameters, DB* db, int FIFO, i
 char* compareFlights(DB* db, int *a, int *d, int airport);
 void findAirCrafts(char** aircraft, int nofAirCrafts, DB* db, char*** output, 
 int* logSize, int* phySize);
-DB* reRunScript(DB* dataBase, int FIFO);
+DB* reRunScript(char** inputArr, int arrSize, DB* dataBase, int FIFO);
 FlightData splitS(char* str);
 void freeDataBase(DB* db);
 //////////////////////////////File Functions///////////////////////////////////

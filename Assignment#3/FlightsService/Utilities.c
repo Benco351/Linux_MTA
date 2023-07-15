@@ -63,7 +63,7 @@ void ReadOrWriteToPipe(char** output, int O_size, int FIFO, bool SIG)
 //Checks whether input is valid.
 bool isValidChar(char input)
 {
-    return (input == ',' || input == '\n'|| (input >= 65 && input <= 122) || (input >= 48 && input <= 57));
+    return (input == ' ' || input == '\n'|| (input >= 65 && input <= 122) || (input >= 48 && input <= 57));
 }
 
 //Reads the input from user.
@@ -72,8 +72,8 @@ char** readInput(int* size, int choice)
     int arrLogSize = 0, arrPhySize = 0, currentStringLogSize = 0, currentStringPhySize = 0;
     char** output = NULL;
 
-    printf("Please enter desired input seperated by a single comma (,).\n"
-           "For example: LLBG,LLTK\n\n");
+    printf("Please enter desired input seperated by a single space.\n"
+           "For example: LLBG LLTK\n\n");
 
     char input = (char)getchar();
 
@@ -94,8 +94,14 @@ char** readInput(int* size, int choice)
             input -= 32;
         }
 
-        if (input == ',' || input == '\n')
+        if (input == ' ' || input == '\n')
         {
+            if (currentStringLogSize == 0) //Case of seen first a space or \n.
+            {
+                input = (char)getchar();
+                continue;
+            }
+
             if (currentStringLogSize == currentStringPhySize)
             {
                 currentStringPhySize += 1;
@@ -115,7 +121,7 @@ char** readInput(int* size, int choice)
             currentStringLogSize = 0;
             currentStringPhySize = 0;
 
-            if (input == ',')
+            if (input == ' ')
             {
                 input = (char)getchar();
             }
@@ -160,7 +166,7 @@ char** readInput(int* size, int choice)
         currentStringLogSize++;
         input = (char)getchar();
 
-        if (input == ',' || input == '\n')
+        if (input == ' ' || input == '\n')
         {
             if (currentStringLogSize == currentStringPhySize)
             {
@@ -181,7 +187,7 @@ char** readInput(int* size, int choice)
             currentStringLogSize = 0;
             currentStringPhySize = 0;
 
-            if (input == ',')
+            if (input == ' ')
             {
                 input = (char)getchar();
             }

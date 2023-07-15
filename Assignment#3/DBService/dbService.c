@@ -40,6 +40,8 @@ int main()
     if (listSize > 0)
         free(dirList);
     
+    printf("DB Service is up and waiting for requests.\n");
+    
     while (true)
     {
         sem_wait(DBServiceSema);

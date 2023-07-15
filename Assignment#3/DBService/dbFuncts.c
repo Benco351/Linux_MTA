@@ -19,6 +19,12 @@ DB* getDataBase(int numOfArgs, char* airports[])
         char departures[MAX_SIZE];
 
         openFilesByAirportName(DataBase->airPortsNames[q], &departuresFile, &arrivalsFile);
+        if (departuresFile == NULL || arrivalsFile == NULL)
+        {
+            free(DataBase);
+            DataBase = NULL;
+            return DataBase;
+        }
 
         DataBase->airPortsArr[q].SizeDepartures = checkRows(departuresFile);
         DataBase->airPortsArr[q].SizeArrivals = checkRows(arrivalsFile);
@@ -113,6 +119,7 @@ char* unix_time_to_date(const char* timestamp_str)
 //Loads database according to arguments.
 void loadDatabase(int numOfArgs, char* airports[])
 {
+    int result;
     char workDir[MAX_SIZE], commandLine[MAX_SIZE], tempStr[MAX_SIZE];
     strcpy(commandLine, "bash ");
     getcwd(workDir, sizeof(workDir));
@@ -128,7 +135,7 @@ void loadDatabase(int numOfArgs, char* airports[])
         strcat(commandLine, airports[i]);
     }
 
-    system(commandLine);
+    result = system(commandLine);
     system("rm -rf ../flightsDB/");
     system("mv flightsDB ..");
 }
@@ -185,10 +192,10 @@ char** printFlightsToAirport(char* airportName, DB* db, int* logSize ,int missio
     
     else if (j == -1)
     {
-        currStringSize = snprintf(NULL, 0, "%s does not exist in data base\n", airportName);
+        currStringSize = snprintf(NULL, 0, "%s does not exist in data base.\n", airportName);
         output[*logSize] = (char*)malloc(currStringSize + 1);
-        checkAllocation(output);
-        snprintf(output[*logSize], currStringSize + 1, "%s does not exist in data base\n", airportName);
+        checkAllocation(output[*logSize]);
+        snprintf(output[*logSize], currStringSize + 1, "%s does not exist in data base.\n", airportName);
         (*logSize)++;
     }
 
@@ -336,6 +343,7 @@ char* compareFlights(DB* db, int *a, int *d, int airport)
 //Returns aircraft's data.
 void findAirCrafts(char** aircraft, int nofAirCrafts, DB* db, char*** output, int* logSize, int* phySize)
 {
+    int currentStringSize = 0;
     for (int j = 0; j < db->nofAirports; j++)
     {
         for (int k = 0; k < db->airPortsArr[j].SizeArrivals; k++)
@@ -355,6 +363,7 @@ void findAirCrafts(char** aircraft, int nofAirCrafts, DB* db, char*** output, in
                 }
             }
         }
+
         for (int k = 0; k < db->airPortsArr[j].SizeDepartures; k++)
         {
             for (int t = 0; t < nofAirCrafts; t++)
@@ -373,27 +382,24 @@ void findAirCrafts(char** aircraft, int nofAirCrafts, DB* db, char*** output, in
             }
         }
     }
+
+    if ((*logSize) == 0)
+    {
+        currentStringSize = snprintf(NULL, 0, "%s does not exist in data base.\n", aircraft[0]);
+        *(output[*logSize]) = (char*)malloc(currentStringSize + 1);
+        checkAllocation(*(output[*logSize]));
+        snprintf(*(output[*logSize]), currentStringSize + 1, "%s does not exist in data base.\n", aircraft[0]);
+        (*logSize)++;
+    }
 }
 
 //Re-runs the script and creates a new DB.
-DB* reRunScript(DB* dataBase, int FIFO)
+DB* reRunScript(char** inputArr, int arrSize, DB* dataBase, int FIFO)
 {
     DB* output = NULL;
-    int BytesCounter = 0, nofAirports = 0, stringSize = 0;
-    char** airports = NULL;
-
-    BytesCounter = read(FIFO, &nofAirports, sizeof(int));
-    while (BytesCounter != sizeof(nofAirports))
-    {
-        BytesCounter += read(FIFO, &nofAirports, sizeof(int));
-    }
-
-    airports = (char**)malloc(nofAirports * sizeof(char*));
-    checkAllocation(airports);
-
-    ReadOrWriteToPipe(airports, nofAirports, FIFO, READ);
-    loadDatabase(nofAirports, airports);
-    output = getDataBase(nofAirports, airports);
+    int BytesCounter = 0, stringSize = 0;
+    loadDatabase(arrSize, inputArr);
+    output = getDataBase(arrSize, inputArr);
 
     return output;
 }

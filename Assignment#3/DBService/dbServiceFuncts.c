@@ -3,11 +3,11 @@
 //DB service main function.
 void dbServiceProcess(int FIFO, int Opcode, DB** dataBase)
 {
-    int arrSize = 0, exitCode, result = 0, bytesCounter = 0;
-    char** output = NULL;
+    int arrSize = 0, result = 0, bytesCounter = 0;
+    char** inputArr = NULL;
     DB* newDB = NULL;
 
-    if (Opcode >= INCOMING_FLIGHTS && Opcode <= AIRCRAFT_SCHEDULE)
+    if (Opcode >= FETCH_DATA && Opcode <= AIRCRAFT_SCHEDULE)
     {
         bytesCounter = read(FIFO, &arrSize, sizeof(int));
         while (bytesCounter != sizeof(int))
@@ -15,34 +15,61 @@ void dbServiceProcess(int FIFO, int Opcode, DB** dataBase)
             bytesCounter += read(FIFO, &arrSize, sizeof(int));
         }
 
-        output = (char**)malloc(sizeof(char*) * arrSize);
-        checkAllocation(output);
-        
-        ReadOrWriteToPipe(output, arrSize, FIFO, READ);
-        runRequestOnDB(output, arrSize, *dataBase, FIFO, Opcode);
-
-        for (int i = 0; i < arrSize; i++)
+        if (arrSize > 0)
         {
-            free(output[i]);
+            inputArr = (char**)malloc(sizeof(char*) * arrSize);
+            checkAllocation(inputArr);
+
+            ReadOrWriteToPipe(inputArr, arrSize, FIFO, READ);
+
+            if (Opcode == FETCH_DATA)
+            {
+                newDB = reRunScript(inputArr, arrSize, *dataBase, FIFO);
+                if (newDB == NULL)
+                {
+                    result = SCRIPT_FAILURE;
+                }
+
+                else if (newDB != NULL)
+                {
+                    freeDataBase(*dataBase);
+                    *dataBase = newDB;
+                    result = FINISH;   
+                }
+                
+                bytesCounter = write(FIFO, &result, sizeof(result));
+                while (bytesCounter != sizeof(result))
+                {
+                    bytesCounter += write(FIFO, &result, sizeof(result));
+                }
+            }
+
+            else
+            {
+                runRequestOnDB(inputArr, arrSize, *dataBase, FIFO, Opcode);
+            }
+
+            for (int i = 0; i < arrSize; i++)
+            {
+                free(inputArr[i]);
+            }
+
+            free(inputArr);
         }
 
-        if (arrSize > 0)
-            free(output);
-    }
-
-    switch (Opcode)
-    {
-        case FETCH_DATA:
-            newDB = reRunScript(*dataBase, FIFO);
-            freeDataBase(*dataBase);
-            *dataBase = newDB;
-            result = FINISH;
+        else if (arrSize == 0)
+        {
+            result = EMPTY_INPUT;
             bytesCounter = write(FIFO, &result, sizeof(result));
             while (bytesCounter != sizeof(result))
             {
                 bytesCounter += write(FIFO, &result, sizeof(result));
             }
-            break;
+        }
+    }
+
+    switch (Opcode)
+    {
         case ZIP_DB:
             prepareToZip();
             result = FINISH;
@@ -53,6 +80,7 @@ void dbServiceProcess(int FIFO, int Opcode, DB** dataBase)
             }
             break;
         case SHUTDOWN:
+            prepareToZip();
             freeDataBase(*dataBase);
             close(FIFO);
             break;

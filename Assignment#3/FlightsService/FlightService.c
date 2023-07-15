@@ -47,26 +47,36 @@ int main()
                 BytesCounter += write(FIFO, &Opcode, sizeof(Opcode));
             }
 
+            Opcode == FETCH_DATA ? 
+            printf("Fetching airports data, please hold.\n"):
+            printf("Fetching data from DB, please hold.\n");
+
             ReadOrWriteToPipe(input, inputArrSize, FIFO, WRITE);
             sem_post(DBServiceSema);
             sem_wait(flightServiceSema);
-            
-            if (Opcode >= INCOMING_FLIGHTS && Opcode <= AIRCRAFT_SCHEDULE)
-            {
-                BytesCounter = read(FIFO, &outputArrSize, sizeof(int));
-                while (BytesCounter != sizeof(int))
-                {
-                    BytesCounter += read(FIFO, &outputArrSize, sizeof(int));
-                }
 
+            BytesCounter = read(FIFO, &result, sizeof(int));
+            while (BytesCounter != sizeof(int))
+            {
+                BytesCounter += read(FIFO, &result, sizeof(int));
+            }
+
+            if (result == EMPTY_INPUT)
+            {
+                printf("No input inserted. Please try again...\n");
+            }
+
+            else if (result == SCRIPT_FAILURE)
+            {
+                printf("Error running script. Please try again.\n");
+            }
+            
+            else if (Opcode >= INCOMING_FLIGHTS && Opcode <= AIRCRAFT_SCHEDULE)
+            {
+                outputArrSize = result;
                 output = (char**)malloc(sizeof(char*) * outputArrSize);
                 checkAllocation(output);
                 ReadOrWriteToPipe(output, outputArrSize, FIFO, READ);
-                
-                if (outputArrSize == 0)
-                {
-                    printf("Aircraft was not found in our DB.\n");
-                }
 
                 for (int i = 0; i < outputArrSize; i++)
                 {
@@ -84,14 +94,8 @@ int main()
                 free(input);
             }
 
-            else if (Opcode == FETCH_DATA)
+            else if (Opcode == FETCH_DATA && result == FINISH)
             {
-                BytesCounter = read(FIFO, &result, sizeof(result));
-                while (BytesCounter != sizeof(result))
-                {
-                    BytesCounter += read(FIFO, &result, sizeof(result));
-                }
-
                 printf("Successfully updated the DB files.\n");
             }
         }
