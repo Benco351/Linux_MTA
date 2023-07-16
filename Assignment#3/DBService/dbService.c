@@ -13,7 +13,7 @@ int main()
         perror("Semaphore failed.\n Error");
         exit(-1);
     }
-    const char* myfifo = "/shared-volume/filghts_fifo";
+    const char* myfifo = "/tmp/filghts_fifo";
     stat(myfifo,&stat_p);
     if(!file_exists(myfifo) || S_ISFIFO(stat_p.st_mode) == 0)
     {
