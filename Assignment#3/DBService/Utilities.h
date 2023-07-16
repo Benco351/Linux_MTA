@@ -100,6 +100,7 @@ int zipFolder(const char* folderPath, const char* zipFilePath);
 int unzipFolder(const char* zipFilePath, const char* destinationFolder);
 //////////////////////////////General Functions//////////////////////////////
 int compareStrings(const void* a, const void* b);
+bool file_exists(const char* filename);
 int quickSearch(char* arr[], int size, char* target);
 void checkAllocation(void* ptr);
 #endif

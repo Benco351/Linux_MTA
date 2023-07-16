@@ -2,7 +2,7 @@
 
 int main()
 {
-    const char* myfifo = "/tmp/filghts_fifo";
+    const char* myfifo = "/shared-volume/filghts_fifo";
     sem_t* DBServiceSema = sem_open(DB_SERVICE_SEMAPHORE, 0);
     sem_t* flightServiceSema = sem_open(FLIGHTS_SERVICE_SEMAPHORE, 0);
     if (DBServiceSema == SEM_FAILED || flightServiceSema == SEM_FAILED)

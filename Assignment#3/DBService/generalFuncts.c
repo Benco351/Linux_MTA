@@ -8,6 +8,16 @@ int compareStrings(const void* a, const void* b)
     return strcmp(*str1, *str2);
 }
 
+bool file_exists(const char* filename)
+{
+    FILE *fp = fopen(filename,"r");
+    if(fp!=NULL)
+    {
+        fclose(fp);
+        return true;
+    }
+    return false;
+}
 //Binary search function to find the needed airport.
 int quickSearch(char* arr[], int size, char* target)
 {

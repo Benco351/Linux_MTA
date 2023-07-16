@@ -3,22 +3,26 @@
 int main()
 {
     int FIFO, FifoBytesCounter = 0, Opcode = 0;
-    sem_unlink(DB_SERVICE_SEMAPHORE);
-    sem_unlink(FLIGHTS_SERVICE_SEMAPHORE);
-    sem_t* DBServiceSema = sem_open(DB_SERVICE_SEMAPHORE, O_CREAT, 0660, 0);
-    sem_t* flightsServiceSema = sem_open(FLIGHTS_SERVICE_SEMAPHORE, O_CREAT, 0660, 0);
+    struct stat stat_p;
+    // sem_unlink(DB_SERVICE_SEMAPHORE);
+    // sem_unlink(FLIGHTS_SERVICE_SEMAPHORE);
+    sem_t* DBServiceSema = sem_open(DB_SERVICE_SEMAPHORE, O_CREAT , 0660, 0);
+    sem_t* flightsServiceSema = sem_open(FLIGHTS_SERVICE_SEMAPHORE, O_CREAT , 0660, 0);
     if (DBServiceSema == SEM_FAILED || flightsServiceSema == SEM_FAILED)
     {
         perror("Semaphore failed.\n Error");
         exit(-1);
     }
-    const char* myfifo = "/tmp/filghts_fifo";
-
-    unlink(myfifo);
-    if (mkfifo(myfifo, 0666) == -1)
+    const char* myfifo = "/shared-volume/filghts_fifo";
+    stat(myfifo,&stat_p);
+    if(!file_exists(myfifo) || S_ISFIFO(stat_p.st_mode) == 0)
     {
-          fprintf(stderr, "FIFO failed.\n");
+        if (mkfifo(myfifo, 0666) == -1)
+        {
+            fprintf(stderr, "FIFO failed.\n");
+        }
     }
+    // unlink(myfifo);
 
     if ((FIFO = open(myfifo, O_RDWR)) == -1)
     {
