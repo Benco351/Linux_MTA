@@ -1,13 +1,13 @@
 Submission by:
 ----------------------
 Name: Ben Cohen
-ID: 209174549
+ID: *********
 ----------------------
 Name: Smadar Shoshan
-ID: 313514911
+ID: *********
 ----------------------
 Name: Elior Migdal
-ID: 313455321
+ID: *********
 ----------------------
 HOW TO RUN OUR PROGRAM?:
 1. First, open terminal and navigate to submission directory.
