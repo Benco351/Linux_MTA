@@ -1,4 +1,4 @@
-###Linux_MTA: Multithreaded Software on Linux###
+###Linux_MTA: Multithreaded Software on Linux
 Linux_MTA is a comprehensive software project, consisting of various assignments that collectively form a multithreaded software solution on the Linux platform. This project is designed to tackle diverse aspects of software development, including API integration, data analysis, containerization using Docker, and automation through Bash scripting.
 
 ##Overview##
